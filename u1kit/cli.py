@@ -12,10 +12,10 @@ import yaml
 from u1kit.archive import read_3mf, write_3mf
 from u1kit.config import emit_config, parse_config
 from u1kit.fixers import get_fixer_map
-from u1kit.fixers.base import FixMode, Pipeline
+from u1kit.fixers.base import Fixer, FixMode, Pipeline
 from u1kit.report import format_human, format_json
 from u1kit.rules import RULES, get_rule
-from u1kit.rules.base import Context, Result, Severity
+from u1kit.rules.base import Context, Result, Rule, Severity
 
 
 def _load_preset(name: str) -> dict[str, Any]:
@@ -26,8 +26,11 @@ def _load_preset(name: str) -> dict[str, Any]:
         try:
             with as_file(ref) as path:
                 text = path.read_text(encoding="utf-8")
-                result: Any = yaml.safe_load(text)
-                return result  # type: ignore[no-any-return]
+                data = yaml.safe_load(text)
+                if not isinstance(data, dict):
+                    click.echo(f"Error: preset {name!r} is malformed.", err=True)
+                    sys.exit(1)
+                return data
         except (FileNotFoundError, TypeError):
             continue
 
@@ -57,12 +60,12 @@ def _list_presets() -> list[dict[str, str]]:
     return result
 
 
-def _get_rules_for_preset(preset: dict[str, Any]) -> list[type[Any]]:
+def _get_rules_for_preset(preset: dict[str, Any]) -> list[type[Rule]]:
     """Get rule classes for a preset, always including A1."""
     from u1kit.rules.a1_source_slicer import A1SourceSlicer
 
     rule_ids = preset.get("rules", [])
-    rules: list[type[Any]] = [A1SourceSlicer]
+    rules: list[type[Rule]] = [A1SourceSlicer]
 
     for rule_id in rule_ids:
         try:
@@ -210,7 +213,7 @@ def presets_list(use_json: bool) -> None:
             click.echo(f"  {p['name']}: {p['description']}")
 
 
-def _interactive_prompt(result: Any, fixer: Any) -> bool:
+def _interactive_prompt(result: Result, fixer: Fixer) -> bool:
     """Prompt user to accept/skip a fix in interactive mode."""
     click.echo(f"\n[{result.rule_id}] {result.message}")
     if result.diff_preview:

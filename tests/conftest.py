@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 import zipfile
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -144,7 +145,7 @@ def full_spectrum_3mf_bytes() -> bytes:
 
 
 @pytest.fixture
-def tmp_3mf(tmp_path: Any, bambu_4color_3mf_bytes: bytes) -> Any:
+def tmp_3mf(tmp_path: Path, bambu_4color_3mf_bytes: bytes) -> Path:
     """Write a Bambu .3mf to a temp file and return its path."""
     path = tmp_path / "test.3mf"
     path.write_bytes(bambu_4color_3mf_bytes)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 
 def parse_config(raw: bytes) -> dict[str, Any]:
@@ -15,7 +15,7 @@ def parse_config(raw: bytes) -> dict[str, Any]:
     Returns:
         Parsed JSON as a dict.
     """
-    return json.loads(raw.decode("utf-8"))  # type: ignore[no-any-return]
+    return cast(dict[str, Any], json.loads(raw.decode("utf-8")))
 
 
 def emit_config(data: dict[str, Any]) -> bytes:

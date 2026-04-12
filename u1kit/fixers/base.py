@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from u1kit.rules.base import Context, Result
+from u1kit.rules.base import Context, Result, Rule
 
 
 class FixMode(Enum):
@@ -52,10 +53,10 @@ class Pipeline:
 
     def __init__(
         self,
-        rules: list[type[Any]],
+        rules: list[type[Rule]],
         fixers: dict[str, Fixer],
         mode: FixMode = FixMode.AUTO,
-        interactive_callback: Any | None = None,
+        interactive_callback: Callable[[Result, Fixer], bool] | None = None,
     ) -> None:
         self.rules = rules
         self.fixers = fixers
