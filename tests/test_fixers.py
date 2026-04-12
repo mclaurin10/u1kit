@@ -36,7 +36,7 @@ class TestA2Fixer:
         results, fixer_results, updated, _ = pipeline.run(config, {})
 
         assert any(fr.applied for fr in fixer_results)
-        assert updated["printer_settings_id"] == "Snapmaker U1"
+        assert updated["printer_settings_id"] == "Snapmaker U1 (0.4 nozzle)"
         assert updated["printer_model"] == "Snapmaker U1"
 
     def test_post_fix_passes_lint(self) -> None:

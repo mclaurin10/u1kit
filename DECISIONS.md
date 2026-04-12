@@ -20,27 +20,41 @@ This matches Orca Slicer's observed output format.
 ## A3 G-code template
 
 **Decision:** Toolchange G-code loaded from `u1kit/data/u1_toolchange.gcode` at
-runtime so swapping templates is a single-file change.
-
-**TODO:** Replace placeholder with known-good Snapmaker Orca export.
+runtime so swapping templates is a single-file change. The template is the raw
+`change_filament_gcode` string stored in a .3mf's `project_settings.config`, using
+Orca Slicer's template language (`{variable}` / `[variable]` placeholders, `if/then/
+endif` blocks). u1kit writes this value into the config field verbatim; Orca
+evaluates the template at slice time.
 
 ## U1 printer reference
 
 **Decision:** Printer profile data loaded from `u1kit/data/u1_printer_reference.json`.
+The reference includes 36 fields extracted from a real Snapmaker Orca slice:
+identity fields (`printer_settings_id`, `printer_model`, `printer_variant`), geometry
+(`printable_area` as list of corner strings, `printable_height` as scalar), per-
+extruder arrays (machine limits, nozzle_diameter, extruder_offset, etc.), and toolchanger
+metadata (`single_extruder_multi_material`, `nozzle_type`).
 
-**TODO:** Replace placeholder values with real Snapmaker U1 specs.
+**Source:** Extracted on 2026-04-12 from `u1.3mf` (Snapmaker Orca export, template
+date 20251213 per machine_start_gcode header).
 
 ## B1 filament count
 
 **Decision:** Report-only in Phase 1. Raises `fail` severity with no fixer.
 Interactive merge of filaments deferred to Phase 2.
 
-## Reference JSON shape (Phase 1 contract fix)
+## Reference JSON shape
 
-**Decision:** Machine limit fields (`machine_max_acceleration_*`, `machine_max_speed_*`,
-`machine_max_jerk_*`) stored as single-element arrays (e.g. `["5000"]`) to match Orca
-Slicer's actual .3mf output format. Profile identity fields (`printer_settings_id`,
-`printer_model`, `printable_area`, `printable_height`) remain scalar strings.
+**Decision:** Per-extruder fields are stored as 4-element arrays (one value per
+extruder), matching Snapmaker Orca's actual output for the U1 toolchanger. This
+includes `machine_max_*` (acceleration/speed/jerk/junction_deviation on every axis,
+including `_e` for filament), `nozzle_diameter`, `extruder_offset`, and
+`required_nozzle_HRC`. Values may differ per extruder (e.g. `machine_max_jerk_z`
+is `["3", "3", "0.4", "0.4"]`).
+
+`printable_area` is a list of 4 corner strings (e.g. `["0.5x1", "270.5x1",
+"270.5x271", "0.5x271"]`). Identity fields (`printer_settings_id`, `printer_model`,
+`printable_height`, `printer_variant`, etc.) are scalar strings.
 
 ## B3 inherits broadening (Phase 1 contract fix)
 

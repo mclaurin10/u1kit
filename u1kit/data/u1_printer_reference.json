@@ -1,18 +1,142 @@
 {
-    "printer_settings_id": "Snapmaker U1",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "default_bed_type": "Textured PEI Plate",
+    "extruder_clearance_height_to_lid": "140",
+    "extruder_clearance_height_to_rod": "27.5",
+    "extruder_clearance_radius": "72.5",
+    "extruder_offset": [
+        "0x0",
+        "0x0",
+        "0x0",
+        "0x0"
+    ],
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000",
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000",
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000",
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000",
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000",
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000",
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500",
+        "200",
+        "200"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5",
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9",
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9",
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "3",
+        "0.4",
+        "0.4"
+    ],
+    "machine_max_junction_deviation": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30",
+        "25",
+        "25"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "500",
+        "200",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "500",
+        "200",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20",
+        "12",
+        "12"
+    ],
+    "nozzle_diameter": [
+        "0.4",
+        "0.4",
+        "0.4",
+        "0.4"
+    ],
+    "nozzle_hrc": "0",
+    "nozzle_type": "hardened_steel",
+    "nozzle_volume": "143",
+    "print_compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ],
+    "printable_area": [
+        "0.5x1",
+        "270.5x1",
+        "270.5x271",
+        "0.5x271"
+    ],
+    "printable_height": "270.05",
     "printer_model": "Snapmaker U1",
-    "printable_area": "0x0,320x0,320x320,0x320",
-    "printable_height": "340",
-    "machine_max_acceleration_x": ["5000"],
-    "machine_max_acceleration_y": ["5000"],
-    "machine_max_acceleration_z": ["500"],
-    "machine_max_acceleration_e": ["5000"],
-    "machine_max_speed_x": ["300"],
-    "machine_max_speed_y": ["300"],
-    "machine_max_speed_z": ["20"],
-    "machine_max_speed_e": ["80"],
-    "machine_max_jerk_x": ["8"],
-    "machine_max_jerk_y": ["8"],
-    "machine_max_jerk_z": ["2"],
-    "machine_max_jerk_e": ["2.5"]
+    "printer_settings_id": "Snapmaker U1 (0.4 nozzle)",
+    "printer_structure": "undefine",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "required_nozzle_HRC": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "single_extruder_multi_material": "0"
 }

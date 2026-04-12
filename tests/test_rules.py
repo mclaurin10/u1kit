@@ -57,7 +57,7 @@ class TestA2PrinterProfile:
 
     def test_u1_profile_passes(self) -> None:
         ctx = Context(config={
-            "printer_settings_id": "Snapmaker U1",
+            "printer_settings_id": "Snapmaker U1 (0.4 nozzle)",
             "printer_model": "Snapmaker U1",
         })
         results = A2PrinterProfile().check(ctx)

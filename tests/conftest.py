@@ -114,7 +114,7 @@ def make_full_spectrum_3mf(
 ) -> bytes:
     """Build a Full Spectrum .3mf with mixed height settings."""
     config = {
-        "printer_settings_id": "Snapmaker U1",
+        "printer_settings_id": "Snapmaker U1 (0.4 nozzle)",
         "printer_model": "Snapmaker U1",
         "printable_area": "0x0,320x0,320x320,0x320",
         "printable_height": "340",

@@ -56,7 +56,7 @@ class TestLint:
         from tests.conftest import make_3mf
 
         config = {
-            "printer_settings_id": "Snapmaker U1",
+            "printer_settings_id": "Snapmaker U1 (0.4 nozzle)",
             "printer_model": "Snapmaker U1",
             "machine_start_gcode": "G28\n",
             "machine_end_gcode": "M400\n",
