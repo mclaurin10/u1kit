@@ -85,6 +85,36 @@ class TestA3BambuMacros:
         assert len(results) == 1
         assert results[0].severity == Severity.FAIL
 
+    def test_m623_detected(self) -> None:
+        ctx = Context(config={
+            "machine_start_gcode": "G28\nM623\nG1 X0\n",
+        })
+        results = A3BambuMacros().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+        assert results[0].fixer_id == "a3"
+
+    def test_ams_keyword_detected(self) -> None:
+        ctx = Context(config={
+            "change_filament_gcode": "; AMS filament change\nT1\n",
+        })
+        results = A3BambuMacros().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+
+    def test_multiple_fields_single_result(self) -> None:
+        ctx = Context(config={
+            "machine_start_gcode": "G28\nM620 S0A\n",
+            "change_filament_gcode": "M621 S1A\nT1\n",
+            "machine_end_gcode": "",
+            "layer_change_gcode": "",
+        })
+        results = A3BambuMacros().check(ctx)
+        assert len(results) == 1
+        assert results[0].diff_preview is not None
+        assert "machine_start_gcode" in results[0].diff_preview
+        assert "change_filament_gcode" in results[0].diff_preview
+
     def test_clean_gcode_passes(self) -> None:
         ctx = Context(config={
             "machine_start_gcode": "G28\nG1 X0 Y0\n",
@@ -214,6 +244,16 @@ class TestD1MixedHeightBounds:
         ctx = Context(config={"layer_height": "0.2"})
         results = D1MixedHeightBounds().check(ctx)
         assert len(results) == 0
+
+    def test_malformed_lower_bound_reports_fail(self) -> None:
+        ctx = Context(config={
+            "layer_height": "0.2",
+            "mixed_filament_height_lower_bound": "not-a-number",
+        })
+        results = D1MixedHeightBounds().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+        assert "not a valid number" in results[0].message
 
     def test_custom_uniform_height(self) -> None:
         ctx = Context(
