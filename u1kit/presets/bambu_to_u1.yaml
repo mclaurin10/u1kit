@@ -1,0 +1,8 @@
+name: bambu-to-u1
+description: Convert Bambu Lab / Makerworld .3mf files for the Snapmaker U1
+rules:
+  - A2
+  - A3
+  - B1
+  - B2
+  - B3
