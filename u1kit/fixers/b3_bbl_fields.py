@@ -5,10 +5,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
-_U1_RE = re.compile(r"\bU1\b", re.IGNORECASE)
-
 from u1kit.fixers.base import Fixer
 from u1kit.rules.base import Context
+
+_U1_RE = re.compile(r"\bU1\b", re.IGNORECASE)
 
 BBL_TOP_LEVEL_FIELDS = (
     "bbl_use_printhost",
@@ -62,7 +62,7 @@ class B3BblFieldsFixer(Fixer):
             if isinstance(fil_compat, str):
                 fil_compat = [p.strip() for p in fil_compat.split(";") if p.strip()]
             if isinstance(fil_compat, list):
-                u1_fil = [p for p in fil_compat if re.search(r"\bU1\b", p, re.IGNORECASE)]
+                u1_fil = [p for p in fil_compat if _U1_RE.search(p)]
                 if len(u1_fil) != len(fil_compat):
                     if u1_fil:
                         fil_config["compatible_printers"] = u1_fil
