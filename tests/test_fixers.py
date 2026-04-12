@@ -63,7 +63,9 @@ class TestA3Fixer:
         config: dict[str, Any] = {
             "machine_start_gcode": "G28\nM620 S0A\nG1 X0\n",
             "machine_end_gcode": "M400\n",
-            "change_filament_gcode": "M620 S[next_extruder]A\nT[next_extruder]\nM621 S[next_extruder]A",
+            "change_filament_gcode": (
+                "M620 S[next_extruder]A\nT[next_extruder]\nM621 S[next_extruder]A"
+            ),
             "layer_change_gcode": ";LAYER_CHANGE\n",
         }
         pipeline = Pipeline(
@@ -255,7 +257,10 @@ class TestFullPipeline:
             rule = rule_cls()
             all_results.extend(rule.check(ctx))
 
-        failures = [r for r in all_results if r.severity == Severity.FAIL and r.fixer_id is not None]
+        failures = [
+            r for r in all_results
+            if r.severity == Severity.FAIL and r.fixer_id is not None
+        ]
         assert len(failures) == 0, f"Remaining fixable failures: {failures}"
 
     def test_full_spectrum_d1_fix(self) -> None:
