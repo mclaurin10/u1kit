@@ -5,10 +5,9 @@ from __future__ import annotations
 import io
 import zipfile
 
+from tests.conftest import make_3mf
 from u1kit.archive import read_3mf, write_3mf
 from u1kit.config import emit_config, parse_config
-
-from tests.conftest import make_3mf
 
 
 class TestArchiveRoundtrip:

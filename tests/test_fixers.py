@@ -5,20 +5,18 @@ from __future__ import annotations
 import io
 from typing import Any
 
-from u1kit.archive import read_3mf, write_3mf
-from u1kit.config import emit_config, parse_config
+from tests.conftest import make_bambu_4color_3mf, make_full_spectrum_3mf
+from u1kit.archive import read_3mf
+from u1kit.config import parse_config
 from u1kit.fixers import get_fixer_map
 from u1kit.fixers.base import FixMode, Pipeline
 from u1kit.rules import RULES
-from u1kit.rules.a1_source_slicer import A1SourceSlicer
 from u1kit.rules.a2_printer_profile import A2PrinterProfile
 from u1kit.rules.a3_bambu_macros import A3BambuMacros
 from u1kit.rules.b2_filament_mapping import B2FilamentMapping
 from u1kit.rules.b3_bbl_fields import B3BblFields
 from u1kit.rules.base import Context, Severity
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
-
-from tests.conftest import make_bambu_4color_3mf, make_full_spectrum_3mf
 
 
 class TestA2Fixer:

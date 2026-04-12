@@ -7,9 +7,8 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from u1kit.cli import main
-
 from tests.conftest import make_bambu_4color_3mf, make_full_spectrum_3mf
+from u1kit.cli import main
 
 
 class TestLint:
@@ -109,8 +108,8 @@ class TestFix:
             main, ["fix", str(input_path), "--out", str(output_path), "--json"]
         )
 
-        # Parse only the JSON portion (may have extra output)
-        data = json.loads(result.output.strip().split("\n")[0] if "\n" in result.output else result.output)
+        # The JSON output is the full response (no trailing text when --json is used)
+        data = json.loads(result.output)
         assert "results" in data
         assert "fixers" in data
 

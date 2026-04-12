@@ -86,7 +86,9 @@ def _default_bambu_config() -> dict[str, Any]:
         "filament_colour": "#FF0000;#00FF00;#0000FF;#FFFF00",
         "machine_start_gcode": "M620 S[next_extruder]A\nG28\nM621 S[next_extruder]A\n",
         "machine_end_gcode": "M400\nM104 S0\n",
-        "change_filament_gcode": "M620 S[next_extruder]A\nT[next_extruder]\nM621 S[next_extruder]A\n",
+        "change_filament_gcode": (
+            "M620 S[next_extruder]A\nT[next_extruder]\nM621 S[next_extruder]A\n"
+        ),
         "layer_change_gcode": ";LAYER_CHANGE\n;Z:[layer_z]\n",
         "bbl_use_printhost": "1",
         "compatible_printers": "Bambu Lab X1 Carbon 0.4 nozzle",

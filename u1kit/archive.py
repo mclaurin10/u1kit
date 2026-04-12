@@ -155,8 +155,7 @@ def write_3mf(archive: Archive, dest: str | Path | BinaryIO) -> None:
 
 def _is_config_path(filename: str) -> bool:
     """Check if a path is a config file that we may rewrite."""
-    if filename == CONFIG_PATH:
-        return True
-    if filename.startswith("Metadata/") and filename.endswith(".config"):
-        return True
-    return False
+    return (
+        filename == CONFIG_PATH
+        or (filename.startswith("Metadata/") and filename.endswith(".config"))
+    )
