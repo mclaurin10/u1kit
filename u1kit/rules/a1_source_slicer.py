@@ -34,7 +34,7 @@ class A1SourceSlicer(Rule):
                 Result(
                     rule_id=self.id,
                     severity=Severity.INFO,
-                    message="Source: Full Spectrum (Snapmaker Orca) — "
+                    message="Source: Full Spectrum (Snapmaker Orca) - "
                     "mixed_filament_height keys present.",
                 )
             ]
@@ -67,6 +67,6 @@ class A1SourceSlicer(Rule):
             Result(
                 rule_id=self.id,
                 severity=Severity.INFO,
-                message="Source: Unknown slicer — no Bambu or Full Spectrum markers detected.",
+                message="Source: Unknown slicer - no Bambu or Full Spectrum markers detected.",
             )
         ]

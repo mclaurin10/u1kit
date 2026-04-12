@@ -52,7 +52,7 @@ class D1MixedHeightBounds(Rule):
             f"layer_height={layer_height}, "
             f"lower_bound={lower_bound}, "
             f"upper_bound={upper_bound} "
-            f"→ all locked to {uniform}"
+            f"-> all locked to {uniform}"
         )
 
         return [

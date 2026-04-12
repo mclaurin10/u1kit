@@ -1,4 +1,4 @@
-"""B2: Every used filament must have an extruder index in 1–4."""
+"""B2: Every used filament must have an extruder index in 1-4."""
 
 from __future__ import annotations
 
@@ -47,13 +47,13 @@ class B2FilamentMapping(Rule):
         if not extruder_map:
             problems.append(
                 f"No filament_map defined for {filament_count} filament(s). "
-                f"Extruder indices must be assigned (1–4)."
+                f"Extruder indices must be assigned (1-4)."
             )
         else:
             for i, idx in enumerate(extruder_map):
                 if not isinstance(idx, int) or idx < 1 or idx > 4:
                     problems.append(
-                        f"Filament {i + 1}: extruder index {idx!r} is not in 1–4."
+                        f"Filament {i + 1}: extruder index {idx!r} is not in 1-4."
                     )
 
         if not problems:

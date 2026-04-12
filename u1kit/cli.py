@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from importlib.resources import as_file, files
 from typing import Any
 
 import click
@@ -19,39 +20,40 @@ from u1kit.rules.base import Context, Result, Severity
 
 def _load_preset(name: str) -> dict[str, Any]:
     """Load a preset YAML file by name."""
-    from importlib import resources
+    # Try underscore form first (bambu_to_u1.yaml), then hyphenated
+    for filename in (f"{name.replace('-', '_')}.yaml", f"{name}.yaml"):
+        ref = files("u1kit.presets").joinpath(filename)
+        try:
+            with as_file(ref) as path:
+                text = path.read_text(encoding="utf-8")
+                result: Any = yaml.safe_load(text)
+                return result  # type: ignore[no-any-return]
+        except (FileNotFoundError, TypeError):
+            continue
 
-    preset_file = resources.files("u1kit.presets").joinpath(f"{name.replace('-', '_')}.yaml")
-    if not preset_file.is_file():  # type: ignore[union-attr]
-        # Try with hyphens
-        preset_file = resources.files("u1kit.presets").joinpath(f"{name}.yaml")
-
-    try:
-        text = preset_file.read_text(encoding="utf-8")  # type: ignore[union-attr]
-    except (FileNotFoundError, TypeError):
-        click.echo(f"Error: preset {name!r} not found.", err=True)
-        sys.exit(1)
-
-    return yaml.safe_load(text)  # type: ignore[no-any-return]
+    click.echo(f"Error: preset {name!r} not found.", err=True)
+    sys.exit(1)
 
 
 def _list_presets() -> list[dict[str, str]]:
     """List available presets."""
-    from importlib import resources
-
-    presets_dir = resources.files("u1kit.presets")
+    presets_pkg = files("u1kit.presets")
     result: list[dict[str, str]] = []
-    # Iterate available preset files
-    for item in presets_dir.iterdir():  # type: ignore[union-attr]
-        name = str(item).rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
-        if name.endswith(".yaml"):
-            text = item.read_text(encoding="utf-8")  # type: ignore[union-attr]
-            data = yaml.safe_load(text)
-            if isinstance(data, dict):
-                result.append({
-                    "name": data.get("name", name[:-5]),
-                    "description": data.get("description", ""),
-                })
+
+    for item in presets_pkg.iterdir():
+        item_name = str(item).rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        if not item_name.endswith(".yaml"):
+            continue
+        try:
+            text = item.read_text(encoding="utf-8")
+        except (TypeError, AttributeError):
+            continue
+        data = yaml.safe_load(text)
+        if isinstance(data, dict):
+            result.append({
+                "name": data.get("name", item_name[:-5]),
+                "description": data.get("description", ""),
+            })
     return result
 
 
@@ -68,7 +70,10 @@ def _get_rules_for_preset(preset: dict[str, Any]) -> list[type[Any]]:
             if rule_cls not in rules:
                 rules.append(rule_cls)
         except KeyError:
-            click.echo(f"Warning: unknown rule {rule_id!r} in preset, skipping.", err=True)
+            click.echo(
+                f"Warning: unknown rule {rule_id!r} in preset, skipping.",
+                err=True,
+            )
 
     return rules
 
@@ -112,7 +117,9 @@ def lint(file: str, use_json: bool) -> None:
 @click.option("--preset", default="bambu-to-u1", help="Preset to apply")
 @click.option("--dry-run", is_flag=True, help="Show what would be fixed without applying")
 @click.option("--interactive", is_flag=True, help="Prompt for each fix")
-@click.option("--out", "output_path", type=click.Path(), help="Output path (default: overwrite)")
+@click.option(
+    "--out", "output_path", type=click.Path(), help="Output path (default: overwrite)"
+)
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON")
 @click.option(
     "--uniform-height",

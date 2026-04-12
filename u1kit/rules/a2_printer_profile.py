@@ -46,7 +46,7 @@ class A2PrinterProfile(Rule):
             current = config.get(key, "")
             expected = ref.get(key, "")
             if current != expected:
-                mismatches.append(f"{key}: {current!r} → {expected!r}")
+                mismatches.append(f"{key}: {current!r} -> {expected!r}")
 
         if not mismatches:
             return []

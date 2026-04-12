@@ -62,7 +62,7 @@ def format_human(
         lines.append("Fixers:")
         for fr in fixer_results:
             status = "applied" if fr.applied else "skipped"
-            lines.append(f"  {fr.fixer_id}: {status} — {fr.message}")
+            lines.append(f"  {fr.fixer_id}: {status} - {fr.message}")
 
     # Summary
     fails = sum(1 for r in results if r.severity == Severity.FAIL)
