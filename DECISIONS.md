@@ -77,6 +77,14 @@ path decomposition for cross-platform correctness.
 Spectrum keys (`mixed_filament_height_*`) are present, so it is a no-op for Bambu
 files. Without it, the CLI `fix` command could never address height bound issues.
 
+## Python version floor
+
+**Decision:** `requires-python = ">=3.10"`. The original plan specified 3.11+ but
+nothing in the codebase uses 3.11-only features (no `tomllib`, `typing.Self`,
+`typing.LiteralString`, `ExceptionGroup`, or `TaskGroup`). Every module uses
+`from __future__ import annotations` for PEP 604 union syntax. pyproject.toml,
+`[tool.mypy] python_version`, and `[tool.ruff] target-version` are all set to 3.10.
+
 ## Filament config location
 
 **Decision:** Filament configs are stored as per-object JSON entries within the .3mf
