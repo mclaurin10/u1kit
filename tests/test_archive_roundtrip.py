@@ -142,3 +142,19 @@ class TestArchiveRoundtrip:
 
         archive2 = read_3mf(output)
         assert parse_config(archive2.config_bytes) == {}
+
+    def test_filelike_objects_not_closed(self) -> None:
+        """Caller-provided BytesIO should remain open after read/write."""
+        original = make_3mf()
+
+        # read_3mf should not close the buffer
+        source = io.BytesIO(original)
+        archive = read_3mf(source)
+        assert not source.closed
+        source.getvalue()  # should still work
+
+        # write_3mf should not close the buffer
+        dest = io.BytesIO()
+        write_3mf(archive, dest)
+        assert not dest.closed
+        dest.getvalue()  # should still work

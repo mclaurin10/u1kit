@@ -100,7 +100,7 @@ def read_3mf(source: str | Path | BinaryIO) -> Archive:
         should_close = True
     else:
         zf = zipfile.ZipFile(source, "r")
-        should_close = True
+        should_close = False
 
     try:
         for info in zf.infolist():
@@ -127,7 +127,7 @@ def write_3mf(archive: Archive, dest: str | Path | BinaryIO) -> None:
         should_close = True
     else:
         zf = zipfile.ZipFile(dest, "w")
-        should_close = True
+        should_close = False
 
     try:
         for entry in archive.entries:
