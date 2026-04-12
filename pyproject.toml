@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "u1kit"
 version = "0.1.0"
 description = "Convert Bambu/Makerworld .3mf files for the Snapmaker U1"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "click>=8.0",
     "pyyaml>=6.0",
@@ -24,10 +24,10 @@ testpaths = ["tests"]
 
 [tool.mypy]
 strict = true
-python_version = "3.11"
+python_version = "3.10"
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]

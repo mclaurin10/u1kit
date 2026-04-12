@@ -55,11 +55,12 @@ def make_3mf(
         # Extra entries
         if extra_entries:
             for path, data in extra_entries.items():
-                if path not in (
-                    "Metadata/project_settings.config",
-                    "3D/3dmodel.model",
-                    "[Content_Types].xml",
-                ):
+                if path in ("Metadata/project_settings.config", "[Content_Types].xml"):
+                    continue  # already written above
+                if path == "3D/3dmodel.model":
+                    # custom model data overrides the default
+                    zf.writestr(path, data)
+                else:
                     zf.writestr(path, data)
 
     return buf.getvalue()
