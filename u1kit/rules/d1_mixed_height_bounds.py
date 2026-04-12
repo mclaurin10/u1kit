@@ -34,6 +34,7 @@ class D1MixedHeightBounds(Rule):
                     rule_id=self.id,
                     severity=Severity.FAIL,
                     message=f"{lower_key} is not a valid number: {config[lower_key]!r}",
+                    fixer_id="d1",
                 )
             ]
 

@@ -41,7 +41,7 @@ def _list_presets() -> list[dict[str, str]]:
     result: list[dict[str, str]] = []
 
     for item in presets_pkg.iterdir():
-        item_name = str(item).rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        item_name = item.name
         if not item_name.endswith(".yaml"):
             continue
         try:

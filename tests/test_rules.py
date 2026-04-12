@@ -254,6 +254,7 @@ class TestD1MixedHeightBounds:
         assert len(results) == 1
         assert results[0].severity == Severity.FAIL
         assert "not a valid number" in results[0].message
+        assert results[0].fixer_id == "d1"
 
     def test_custom_uniform_height(self) -> None:
         ctx = Context(

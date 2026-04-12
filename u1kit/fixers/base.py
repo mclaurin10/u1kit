@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from u1kit.rules.base import Context, Result, Severity
+from u1kit.rules.base import Context, Result
 
 
 class FixMode(Enum):
@@ -132,21 +132,5 @@ class Pipeline:
                 )
 
             seen_fixers.add(fixer_id)
-
-        # Re-run rules to get post-fix state
-        post_context = Context(
-            config=config,
-            filament_configs=filament_configs,
-            options=options or {},
-        )
-        post_results = self.run_rules(post_context)
-
-        # Report remaining failures
-        remaining_fails = [r for r in post_results if r.severity == Severity.FAIL]
-        if remaining_fails:
-            for r in remaining_fails:
-                if not any(fr.fixer_id == r.fixer_id for fr in fixer_results if fr.applied):
-                    # This is a new or unfixed failure
-                    pass
 
         return results, fixer_results, config, filament_configs

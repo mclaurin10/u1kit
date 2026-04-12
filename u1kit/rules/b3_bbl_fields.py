@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import re
+
 from u1kit.rules.base import Context, Result, Rule, Severity
+
+_U1_RE = re.compile(r"\bU1\b", re.IGNORECASE)
 
 # Fields that are Bambu-specific and should be removed for U1
 BBL_FIELDS = (
@@ -38,17 +42,17 @@ class B3BblFields(Rule):
             if field_name in config:
                 found.append(f"config: {field_name}")
 
-        # Check inherits chains pointing to Bambu profiles
+        # Check inherits chains pointing to non-U1 profiles
         inherits = config.get("inherits", "")
-        if isinstance(inherits, str) and ("Bambu" in inherits or "BBL" in inherits):
-            found.append(f"config: inherits={inherits!r} (Bambu profile chain)")
+        if isinstance(inherits, str) and inherits and not _U1_RE.search(inherits):
+            found.append(f"config: inherits={inherits!r} (non-U1 profile chain)")
 
         # Check compatible_printers for non-U1 entries
         compatible = config.get("compatible_printers", [])
         if isinstance(compatible, str):
             compatible = [p.strip() for p in compatible.split(";") if p.strip()]
         if isinstance(compatible, list):
-            non_u1 = [p for p in compatible if "U1" not in p and "u1" not in p]
+            non_u1 = [p for p in compatible if not _U1_RE.search(p)]
             if non_u1:
                 found.append(f"config: compatible_printers contains non-U1: {non_u1}")
 
@@ -58,15 +62,13 @@ class B3BblFields(Rule):
                 if field_name in fil_config:
                     val = fil_config[field_name]
                     if field_name == "inherits" and isinstance(val, str):
-                        if "Bambu" in val or "BBL" in val:
+                        if val and not _U1_RE.search(val):
                             found.append(f"{path}: {field_name}={val!r}")
                     elif field_name == "compatible_printers":
                         if isinstance(val, str):
                             val = [p.strip() for p in val.split(";") if p.strip()]
                         if isinstance(val, list):
-                            non_u1_f = [
-                                p for p in val if "U1" not in p and "u1" not in p
-                            ]
+                            non_u1_f = [p for p in val if not _U1_RE.search(p)]
                             if non_u1_f:
                                 found.append(f"{path}: compatible_printers non-U1: {non_u1_f}")
                     else:
