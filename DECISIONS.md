@@ -8,9 +8,10 @@ Design decisions and open questions for u1kit Phase 1.
 non-config entries on round-trip. Rewritten config entries use `ZIP_DEFLATED`. This
 ensures mesh data, thumbnails, and relationships are byte-identical.
 
-**Open question:** Whether Snapmaker Orca cares about ZIP compression level, entry
-ordering, or timestamps has not been verified. Flagged for a real-file spike once
-we have actual .3mf samples from the printer.
+**Resolved 2026-04-12:** Round-trip against `tests/fixtures/real/u1_native.3mf`
+(a real Snapmaker Orca native export) passes byte-identical on all non-config
+entries, entry count, and entry order. See
+`tests/test_archive_roundtrip.py::TestRealFileRoundtrip::test_u1_native_roundtrip_preserves_bytes`.
 
 ## Config emit format
 

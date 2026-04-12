@@ -150,3 +150,15 @@ def tmp_3mf(tmp_path: Path, bambu_4color_3mf_bytes: bytes) -> Path:
     path = tmp_path / "test.3mf"
     path.write_bytes(bambu_4color_3mf_bytes)
     return path
+
+
+@pytest.fixture
+def u1_native_3mf_path() -> Path:
+    """Path to the real Snapmaker Orca native U1 export fixture."""
+    return Path(__file__).parent / "fixtures" / "real" / "u1_native.3mf"
+
+
+@pytest.fixture
+def u1_native_3mf_bytes(u1_native_3mf_path: Path) -> bytes:
+    """Raw bytes of the real Snapmaker Orca native U1 export fixture."""
+    return u1_native_3mf_path.read_bytes()

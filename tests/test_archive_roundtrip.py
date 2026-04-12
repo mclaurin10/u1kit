@@ -158,3 +158,36 @@ class TestArchiveRoundtrip:
         write_3mf(archive, dest)
         assert not dest.closed
         dest.getvalue()  # should still work
+
+
+class TestRealFileRoundtrip:
+    """Round-trip a real Snapmaker Orca native export."""
+
+    def test_u1_native_roundtrip_preserves_bytes(
+        self, u1_native_3mf_bytes: bytes
+    ) -> None:
+        archive = read_3mf(io.BytesIO(u1_native_3mf_bytes))
+        out = io.BytesIO()
+        write_3mf(archive, out)
+
+        original = zipfile.ZipFile(io.BytesIO(u1_native_3mf_bytes))
+        rewritten = zipfile.ZipFile(io.BytesIO(out.getvalue()))
+
+        orig_names = original.namelist()
+        rewritten_names = rewritten.namelist()
+
+        assert len(orig_names) > 0, "Real fixture is empty"
+        assert len(orig_names) == len(rewritten_names), (
+            "Entry count changed on round-trip"
+        )
+        assert "3D/3dmodel.model" in orig_names
+        assert "Metadata/project_settings.config" in orig_names
+
+        non_config = [
+            n for n in orig_names
+            if not (n.endswith(".config") and n.startswith("Metadata/"))
+        ]
+        for name in non_config:
+            assert original.read(name) == rewritten.read(name), (
+                f"{name}: content changed on round-trip"
+            )
