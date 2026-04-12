@@ -107,3 +107,80 @@ archive at paths matching `Metadata/plate_*/slice_info.config` or as embedded JS
 within `project_settings.config` under filament_settings_id / filament_colour etc.
 The actual structure will be adapted once real samples are available.
 For Phase 1, we treat filament data as arrays embedded in project_settings.config.
+
+**Verified 2026-04-12 against `tests/fixtures/real/u1_native.3mf`:** filament fields
+are flat parallel arrays on `project_settings.config`. There are no per-plate
+filament configs on Snapmaker Orca native exports. Every per-filament field
+(`filament_type`, `filament_colour`, `filament_max_volumetric_speed`, `hot_plate_temp`,
+`textured_plate_temp`, `slow_down_layer_time`, `z_hop`, etc.) is stored as a list
+whose length equals the filament count. Selectors (`wall_filament`,
+`support_filament`, `sparse_infill_filament`, `solid_infill_filament`,
+`wipe_tower_filament`, `support_interface_filament`) are scalar 1-based indices
+into those arrays. Phase 1's pragmatic choice was correct; Phase 2 centralizes
+access in `u1kit/filaments.py`.
+
+## Phase 2 open questions
+
+Twenty ambiguities discovered while planning Phase 2, with proposed resolutions
+locked here. Each subsequent task assumes these; any task hitting counter-evidence
+must update this section in the same commit.
+
+1. **B1 color-distance metric** — **CIEDE2000** (perceptually accurate,
+   stdlib-implementable in <80 LoC, tested against Sharma et al. 2005 reference
+   values).
+2. **B1 merge direction** — when merging filament *j* into filament *i*, the
+   filament whose index appears **first in the used-set** stays; the other's
+   selector references are remapped to it and its parallel-array entries are
+   dropped.
+3. **B1 interactive UI** — **one y/n per proposed merge**, with an "all at once"
+   shortcut. Richer editing is deferred to the Phase 3 GUI.
+4. **B4 line cross-section formula** — `outer_wall_line_width × layer_height` for
+   outer-wall cap, inner-wall cap; `sparse_infill_line_width × layer_height` for
+   infill. Conservative factor = **0.8**.
+5. **B5 rigid alternative criterion** — any filament whose `filament_type` is in
+   `{PLA, PETG, ABS, ASA, PC}` and whose index is not the flexible one. Prefer
+   PLA, fall back to the remaining preferred order, then alphabetical.
+6. **C1/C2 "share a plate"** — no plate abstraction exists in U1 native. Resolved:
+   *used-set* (from the selector scalars) + *parallel arrays*. ≥2 distinct values
+   among used indices of a per-filament array triggers the rule.
+7. **C2 safe textured-PEI first-layer cap** — **65°C**.
+8. **C2 `first_layer_bed_temperature` absence** — U1 native doesn't have this
+   field. C2 operates on whichever `*_plate_temp_initial_layer` arrays the config
+   actually contains, falling back to `hot_plate_temp_initial_layer`. If none
+   present, C2 emits no Result.
+9. **D2 Z-hop primary source** — flag if `max(z_hop[i], filament_z_hop[i]) ≥
+   5 × layer_height` for any used filament. Fix writes the capped value back to
+   `z_hop[i]` and zeroes `filament_z_hop[i]` to avoid the override.
+10. **D3 toolchange estimate formula** — `layer_count × #mixed_definitions_with_ratio_50`
+    (≈ one toolchange per layer per 1:1 blend). Informational only — magnitude
+    matters, not exact count.
+11. **E1 thinnest-feature detection** — take the minimum of the object's
+    bounding-box XY dimensions from `3D/3dmodel.model`. True mesh analysis is out
+    of scope; bounding-box min is a safe lower bound for warn-level guidance.
+12. **E1 `line_width` choice** — `outer_wall_line_width` (the tightest constraint
+    in practice).
+13. **E2 volumetric speed** — minimum across the used-set (the slowest filament
+    dominates).
+14. **E3 plate-size threshold** — **120 × 120 mm** (roughly half the U1 bed);
+    tunable via preset option.
+15. **E3 prime tower brim bump** — `max(current_prime_tower_brim_width, 5)` mm.
+    Warn-level, auto-fix optional.
+16. **F1 lineage heuristic** — regex `r" @[A-Za-z0-9 ]+$"` on each used filament's
+    `filament_settings_id`. Missing suffix or non-`@Snapmaker U1` suffix emits an
+    info-level result. Matches the U1 native pattern observed in `u1.3mf`.
+17. **Interactive UX — Click vs prompt_toolkit** — **Click only**, using
+    `click.confirm()` + `click.prompt()` + `difflib.unified_diff`. Prompt_toolkit
+    is reserved for the Phase 3 GUI. Rationale: no new dependency, CliRunner tests
+    stay simple.
+18. **User preset dir on Windows** — use `platformdirs.user_config_path("u1kit")
+    / "presets"`. New dependency `platformdirs >= 3`.
+19. **Archive fidelity vs real file** — resolved by Task 1 (see "Archive fidelity"
+    above).
+20. **Fixture corpus** — Phase 2 starts with `tests/fixtures/real/u1_native.3mf`.
+    Additional Bambu/Makerworld/FS samples will be added as available; Phase 2
+    is not blocked on corpus completeness.
+
+**Parse-and-preserve note (D3):** `mixed_filament_definitions` is a semicolon-CSV
+whose 5th field (index 4) is the ratio percent. Exact semantics of positions 2, 3,
+5–11 are deferred: Phase 2 parses only the fields we use (filament indices, ratio)
+and preserves the rest as opaque strings so round-trip fidelity is maintained.
