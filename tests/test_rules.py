@@ -8,6 +8,8 @@ from u1kit.rules.a3_bambu_macros import A3BambuMacros
 from u1kit.rules.b1_filament_count import B1FilamentCount
 from u1kit.rules.b2_filament_mapping import B2FilamentMapping
 from u1kit.rules.b3_bbl_fields import B3BblFields
+from u1kit.rules.b4_flexible_speed_caps import B4FlexibleSpeedCaps
+from u1kit.rules.b5_flexible_support import B5FlexibleSupport
 from u1kit.rules.base import Context, Severity
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
 
@@ -268,3 +270,120 @@ class TestD1MixedHeightBounds:
         results = D1MixedHeightBounds().check(ctx)
         assert len(results) == 1
         assert "0.16" in results[0].message
+
+
+class TestB4FlexibleSpeedCaps:
+    """B4: flexible filaments need a volumetric speed cap."""
+
+    def test_tpu_without_cap_warns(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "wall_filament": "2",
+        })
+        results = B4FlexibleSpeedCaps().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.WARN
+        assert results[0].fixer_id == "b4"
+
+    def test_tpu_with_adequate_cap_passes(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "filament_max_volumetric_speed": ["20", "5"],
+            "wall_filament": "2",
+        })
+        results = B4FlexibleSpeedCaps().check(ctx)
+        assert len(results) == 0
+
+    def test_tpu_with_too_high_cap_warns(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "filament_max_volumetric_speed": ["20", "20"],
+            "wall_filament": "2",
+        })
+        results = B4FlexibleSpeedCaps().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.WARN
+
+    def test_all_rigid_passes(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["PLA", "PETG"],
+            "filament_colour": ["#000", "#111"],
+        })
+        results = B4FlexibleSpeedCaps().check(ctx)
+        assert len(results) == 0
+
+    def test_unused_flex_is_ignored(self) -> None:
+        # TPU present in slot 2 but no selector references it.
+        ctx = Context(config={
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "1",
+        })
+        results = B4FlexibleSpeedCaps().check(ctx)
+        assert len(results) == 0
+
+    def test_empty_config_passes(self) -> None:
+        results = B4FlexibleSpeedCaps().check(Context(config={}))
+        assert len(results) == 0
+
+
+class TestB5FlexibleSupport:
+    """B5: flexible filaments shouldn't be used as support."""
+
+    def test_flexible_support_with_rigid_alt_fails(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "2",
+            "support_interface_filament": "2",
+        })
+        results = B5FlexibleSupport().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+        assert results[0].fixer_id == "b5"
+
+    def test_flexible_support_no_rigid_alt_warns(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["TPU", "PEBA"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "1",
+            "support_interface_filament": "1",
+        })
+        results = B5FlexibleSupport().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.WARN
+        assert results[0].fixer_id is None
+
+    def test_rigid_support_passes(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "1",
+            "support_interface_filament": "1",
+        })
+        results = B5FlexibleSupport().check(ctx)
+        assert len(results) == 0
+
+    def test_no_support_selector_passes(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+        })
+        results = B5FlexibleSupport().check(ctx)
+        assert len(results) == 0
+
+    def test_interface_only_flexible(self) -> None:
+        ctx = Context(config={
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "1",
+            "support_interface_filament": "2",
+        })
+        results = B5FlexibleSupport().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+        assert results[0].fixer_id == "b5"

@@ -8,6 +8,8 @@ from u1kit.rules.a3_bambu_macros import A3BambuMacros
 from u1kit.rules.b1_filament_count import B1FilamentCount
 from u1kit.rules.b2_filament_mapping import B2FilamentMapping
 from u1kit.rules.b3_bbl_fields import B3BblFields
+from u1kit.rules.b4_flexible_speed_caps import B4FlexibleSpeedCaps
+from u1kit.rules.b5_flexible_support import B5FlexibleSupport
 from u1kit.rules.base import Context, Result, Rule, Severity
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
 
@@ -28,6 +30,8 @@ RULES: list[type[Rule]] = [
     B1FilamentCount,
     B2FilamentMapping,
     B3BblFields,
+    B4FlexibleSpeedCaps,
+    B5FlexibleSupport,
     D1MixedHeightBounds,
 ]
 

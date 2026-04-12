@@ -130,6 +130,40 @@ def is_flexible(filament_type: str | None) -> bool:
     return filament_type.strip().upper() in FLEXIBLE_TYPES
 
 
+def broadcast_field(
+    config: dict[str, Any],
+    field: str,
+    count: int,
+    default: str,
+) -> list[str]:
+    """Return the value of `field` as a parallel array of length `count`.
+
+    Used by rules like B4 that need to inject per-filament values into a
+    field that may currently be a scalar. Behaviour:
+
+    - Missing/None → ``[default] * count``
+    - List of length ``count`` → returned as a new list
+    - Longer list → truncated to ``count``
+    - Shorter list → padded with the last element (or ``default`` if empty)
+    - Scalar → broadcast to every slot
+    - Semicolon-string → split, then handled as a list
+    """
+    raw = config.get(field)
+    if raw is None:
+        return [default] * count
+
+    as_list = _as_list(raw)
+    if as_list is not None:
+        if len(as_list) == count:
+            return list(as_list)
+        if len(as_list) > count:
+            return list(as_list[:count])
+        pad = as_list[-1] if as_list else default
+        return list(as_list) + [pad] * (count - len(as_list))
+
+    return [str(raw)] * count
+
+
 def pop_filament_slot(
     config: dict[str, Any],
     slot_index: int,

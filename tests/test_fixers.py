@@ -366,3 +366,163 @@ class TestFixerIdempotency:
         snapshot = copy.deepcopy(config)
         fixer.apply(config, {}, ctx)
         assert config == snapshot
+
+    def test_b4_idempotent(self) -> None:
+        from u1kit.fixers.b4_flexible_speed_caps import B4FlexibleSpeedCapsFixer
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "filament_max_volumetric_speed": ["20", "20"],
+            "layer_height": "0.2",
+            "outer_wall_line_width": "0.42",
+            "outer_wall_speed": "60",
+            "wall_filament": "2",
+        }
+        fixer = B4FlexibleSpeedCapsFixer()
+        ctx = Context(config=config)
+        fixer.apply(config, {}, ctx)
+        snapshot = copy.deepcopy(config)
+        fixer.apply(config, {}, ctx)
+        assert config == snapshot
+
+    def test_b5_idempotent(self) -> None:
+        from u1kit.fixers.b5_flexible_support import B5FlexibleSupportFixer
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "2",
+            "support_interface_filament": "2",
+        }
+        fixer = B5FlexibleSupportFixer()
+        ctx = Context(config=config)
+        fixer.apply(config, {}, ctx)
+        snapshot = copy.deepcopy(config)
+        fixer.apply(config, {}, ctx)
+        assert config == snapshot
+
+
+class TestB4Fixer:
+    """B4 fixer: cap flexible filaments' volumetric speed and derive wall caps."""
+
+    def test_caps_max_volumetric_speed(self) -> None:
+        from u1kit.fixers.b4_flexible_speed_caps import B4FlexibleSpeedCapsFixer
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "filament_max_volumetric_speed": ["20", "20"],
+            "layer_height": "0.2",
+            "outer_wall_line_width": "0.42",
+            "outer_wall_speed": "60",
+            "wall_filament": "2",
+        }
+        B4FlexibleSpeedCapsFixer().apply(config, {}, Context(config=config))
+        assert config["filament_max_volumetric_speed"][0] == "20"  # PLA unchanged
+        assert float(config["filament_max_volumetric_speed"][1]) <= 5.0
+
+    def test_broadcasts_outer_wall_speed_to_list(self) -> None:
+        from u1kit.fixers.b4_flexible_speed_caps import B4FlexibleSpeedCapsFixer
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "filament_max_volumetric_speed": ["20", "20"],
+            "layer_height": "0.2",
+            "outer_wall_line_width": "0.42",
+            "outer_wall_speed": "60",
+            "wall_filament": "2",
+        }
+        B4FlexibleSpeedCapsFixer().apply(config, {}, Context(config=config))
+        outer = config["outer_wall_speed"]
+        assert isinstance(outer, list)
+        assert len(outer) == 2
+        assert outer[0] == "60"  # PLA slot preserved
+        # 5 / (0.42 * 0.2) * 0.8 ≈ 47.6 mm/s
+        assert 40.0 <= float(outer[1]) <= 55.0
+
+    def test_non_flex_slots_unchanged(self) -> None:
+        from u1kit.fixers.b4_flexible_speed_caps import B4FlexibleSpeedCapsFixer
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "PETG"],
+            "filament_colour": ["#000", "#111"],
+            "filament_max_volumetric_speed": ["20", "15"],
+            "outer_wall_speed": "60",
+        }
+        B4FlexibleSpeedCapsFixer().apply(config, {}, Context(config=config))
+        assert config["filament_max_volumetric_speed"] == ["20", "15"]
+
+    def test_post_fix_passes_lint(self) -> None:
+        from u1kit.fixers.b4_flexible_speed_caps import B4FlexibleSpeedCapsFixer
+        from u1kit.rules.b4_flexible_speed_caps import B4FlexibleSpeedCaps
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "outer_wall_line_width": "0.42",
+            "outer_wall_speed": "60",
+            "wall_filament": "2",
+        }
+        B4FlexibleSpeedCapsFixer().apply(config, {}, Context(config=config))
+        results = B4FlexibleSpeedCaps().check(Context(config=config))
+        assert len(results) == 0
+
+
+class TestB5Fixer:
+    """B5 fixer: swap flexible support for a rigid alternative."""
+
+    def test_reassigns_support_to_pla(self) -> None:
+        from u1kit.fixers.b5_flexible_support import B5FlexibleSupportFixer
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "2",
+            "support_interface_filament": "2",
+        }
+        B5FlexibleSupportFixer().apply(config, {}, Context(config=config))
+        assert config["support_filament"] == "1"
+        assert config["support_interface_filament"] == "1"
+
+    def test_only_interface_needs_swap(self) -> None:
+        from u1kit.fixers.b5_flexible_support import B5FlexibleSupportFixer
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "1",
+            "support_interface_filament": "2",
+        }
+        B5FlexibleSupportFixer().apply(config, {}, Context(config=config))
+        assert config["support_filament"] == "1"
+        assert config["support_interface_filament"] == "1"
+
+    def test_no_rigid_alt_is_noop(self) -> None:
+        from u1kit.fixers.b5_flexible_support import B5FlexibleSupportFixer
+
+        config: dict[str, Any] = {
+            "filament_type": ["TPU", "PEBA"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "1",
+            "support_interface_filament": "1",
+        }
+        snapshot = copy.deepcopy(config)
+        B5FlexibleSupportFixer().apply(config, {}, Context(config=config))
+        assert config == snapshot
+
+    def test_post_fix_passes_lint(self) -> None:
+        from u1kit.fixers.b5_flexible_support import B5FlexibleSupportFixer
+        from u1kit.rules.b5_flexible_support import B5FlexibleSupport
+
+        config: dict[str, Any] = {
+            "filament_type": ["PLA", "TPU"],
+            "filament_colour": ["#000", "#111"],
+            "support_filament": "2",
+            "support_interface_filament": "2",
+        }
+        B5FlexibleSupportFixer().apply(config, {}, Context(config=config))
+        results = B5FlexibleSupport().check(Context(config=config))
+        assert len(results) == 0

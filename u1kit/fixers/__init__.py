@@ -7,6 +7,8 @@ from u1kit.fixers.a3_bambu_macros import A3BambuMacrosFixer
 from u1kit.fixers.b1_filament_count import B1FilamentCountFixer
 from u1kit.fixers.b2_filament_mapping import B2FilamentMappingFixer
 from u1kit.fixers.b3_bbl_fields import B3BblFieldsFixer
+from u1kit.fixers.b4_flexible_speed_caps import B4FlexibleSpeedCapsFixer
+from u1kit.fixers.b5_flexible_support import B5FlexibleSupportFixer
 from u1kit.fixers.base import Fixer, FixerResult, FixMode, Pipeline
 from u1kit.fixers.d1_mixed_height_bounds import D1MixedHeightBoundsFixer
 
@@ -26,6 +28,8 @@ FIXERS: list[type[Fixer]] = [
     B1FilamentCountFixer,
     B2FilamentMappingFixer,
     B3BblFieldsFixer,
+    B4FlexibleSpeedCapsFixer,
+    B5FlexibleSupportFixer,
     D1MixedHeightBoundsFixer,
 ]
 
