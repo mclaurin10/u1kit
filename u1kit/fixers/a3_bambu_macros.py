@@ -28,10 +28,9 @@ STRIP_PATTERNS = [
     re.compile(r"^.*\bAMS\b.*$", re.MULTILINE | re.IGNORECASE),
 ]
 
-GCODE_FIELDS = (
+STRIP_FIELDS = (
     "machine_start_gcode",
     "machine_end_gcode",
-    "change_filament_gcode",
     "layer_change_gcode",
 )
 
@@ -51,21 +50,18 @@ class A3BambuMacrosFixer(Fixer):
     ) -> None:
         toolchange = _load_toolchange_gcode()
 
-        for field_name in GCODE_FIELDS:
+        for field_name in STRIP_FIELDS:
             value = config.get(field_name, "")
             if not isinstance(value, str):
                 continue
 
-            # Strip Bambu-specific lines
             cleaned = value
             for pattern in STRIP_PATTERNS:
                 cleaned = pattern.sub("", cleaned)
 
             # Collapse multiple blank lines
             cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
-
-            if field_name == "change_filament_gcode":
-                # Replace entirely with U1 toolchange template
-                cleaned = toolchange.strip()
-
             config[field_name] = cleaned
+
+        # Replaced entirely — stripping first would be wasted work
+        config["change_filament_gcode"] = toolchange.strip()
