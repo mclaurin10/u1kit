@@ -42,6 +42,17 @@ A Makerworld Bambu 4-color .3mf, run through `u1kit fix --preset bambu-to-u1`,
 opens in Snapmaker Orca without errors. All Phase 1 rules have passing fixture
 tests. `u1kit lint --json` and `u1kit fix --json` produce stable, documented schemas.
 
+## Status
+
+Phase 1 is complete. Covered: rules A1, A2, A3, B1, B2, B3, D1 with fixers for
+A2, A3, B2, B3, D1; `u1kit lint`, `u1kit fix`, `u1kit presets list` with the
+`bambu-to-u1` preset; archive round-trip that preserves thumbnails and mesh
+data byte-for-byte; stable JSON schema (`schema_version: "1"`); real Snapmaker
+U1 printer reference and toolchange G-code sourced from an Orca export.
+
+Deferred to Phase 2: rules B4, B5, C1–C4, D2, D3, E1–E3, F1 and the interactive
+filament-merge workflow for >4 filament inputs (B1 is report-only today).
+
 ## Development
 
 ```bash
