@@ -33,8 +33,10 @@ class B1FilamentCount(Rule):
             Result(
                 rule_id=self.id,
                 severity=Severity.FAIL,
-                message=f"File uses {count} filaments but U1 supports max 4. "
-                f"Manual reduction required (Phase 2 will add interactive merge).",
-                fixer_id=None,  # Report-only in Phase 1
+                message=(
+                    f"File uses {count} filaments but U1 supports max 4. "
+                    f"Run with --interactive to merge them."
+                ),
+                fixer_id="b1",
             )
         ]

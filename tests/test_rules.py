@@ -143,7 +143,7 @@ class TestB1FilamentCount:
         results = B1FilamentCount().check(ctx)
         assert len(results) == 1
         assert results[0].severity == Severity.FAIL
-        assert results[0].fixer_id is None  # Report-only
+        assert results[0].fixer_id == "b1"
 
     def test_empty_passes(self) -> None:
         ctx = Context(config={"filament_colour": ""})

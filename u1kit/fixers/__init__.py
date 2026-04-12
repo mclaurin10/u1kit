@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from u1kit.fixers.a2_printer_profile import A2PrinterProfileFixer
 from u1kit.fixers.a3_bambu_macros import A3BambuMacrosFixer
+from u1kit.fixers.b1_filament_count import B1FilamentCountFixer
 from u1kit.fixers.b2_filament_mapping import B2FilamentMappingFixer
 from u1kit.fixers.b3_bbl_fields import B3BblFieldsFixer
 from u1kit.fixers.base import Fixer, FixerResult, FixMode, Pipeline
@@ -22,6 +23,7 @@ __all__ = [
 FIXERS: list[type[Fixer]] = [
     A2PrinterProfileFixer,
     A3BambuMacrosFixer,
+    B1FilamentCountFixer,
     B2FilamentMappingFixer,
     B3BblFieldsFixer,
     D1MixedHeightBoundsFixer,

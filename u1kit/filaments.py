@@ -130,6 +130,52 @@ def is_flexible(filament_type: str | None) -> bool:
     return filament_type.strip().upper() in FLEXIBLE_TYPES
 
 
+def pop_filament_slot(
+    config: dict[str, Any],
+    slot_index: int,
+    *,
+    target_index: int | None = None,
+) -> None:
+    """Remove filament slot `slot_index` from every parallel array and remap
+    scalar selectors in-place.
+
+    Every config value whose length matches the current filament count is
+    treated as a parallel array; the element at `slot_index` is popped.
+    Scalar selector fields (`wall_filament` etc.) pointing at `slot_index + 1`
+    are redirected to `target_index + 1` (if given) or cleared to `'0'`.
+    Higher-indexed selectors are decremented by one to preserve meaning.
+
+    `target_index` must be < `slot_index` (caller's responsibility: used by
+    B1's merge, which always merges the higher-index filament into the lower).
+    """
+    count = get_filament_count(config)
+    if count == 0 or slot_index < 0 or slot_index >= count:
+        return
+
+    for key in list(config.keys()):
+        as_list = _as_list(config[key])
+        if as_list is None or len(as_list) != count:
+            continue
+        config[key] = as_list[:slot_index] + as_list[slot_index + 1 :]
+
+    for field in SELECTOR_FIELDS:
+        raw = config.get(field)
+        if raw is None:
+            continue
+        try:
+            idx_1b = int(str(raw).strip() or "0")
+        except (TypeError, ValueError):
+            continue
+        if idx_1b <= 0:
+            continue
+        if idx_1b == slot_index + 1:
+            config[field] = (
+                str(target_index + 1) if target_index is not None else "0"
+            )
+        elif idx_1b > slot_index + 1:
+            config[field] = str(idx_1b - 1)
+
+
 def find_rigid_alternative(
     config: dict[str, Any], exclude_index: int
 ) -> int | None:

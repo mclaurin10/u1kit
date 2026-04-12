@@ -19,6 +19,14 @@ class FixMode(Enum):
     INTERACTIVE = "interactive"
 
 
+class FixerAbort(Exception):  # noqa: N818
+    """Signals that a fixer refused to apply and the pipeline should record
+    a skipped FixerResult instead of crashing.
+
+    Subclasses carry domain-specific meaning (e.g. B1MergeRequiresConsent).
+    """
+
+
 @dataclass
 class FixerResult:
     """Outcome of applying a fixer."""
@@ -123,7 +131,18 @@ class Pipeline:
                 should_apply = self.interactive_callback(result, fixer)
 
             if should_apply:
-                fixer.apply(config, filament_configs, context)
+                try:
+                    fixer.apply(config, filament_configs, context)
+                except FixerAbort as exc:
+                    fixer_results.append(
+                        FixerResult(
+                            fixer_id=fixer_id,
+                            applied=False,
+                            message=str(exc),
+                        )
+                    )
+                    seen_fixers.add(fixer_id)
+                    continue
                 fixer_results.append(
                     FixerResult(fixer_id=fixer_id, applied=True, message="Applied")
                 )

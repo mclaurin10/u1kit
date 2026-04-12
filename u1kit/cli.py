@@ -242,6 +242,8 @@ def fix(
         filament_configs[path] = parse_config(raw)
 
     options: dict[str, Any] = {"uniform_height": uniform_height}
+    if mode == FixMode.INTERACTIVE:
+        options["b1_interactive"] = True
 
     pipeline = Pipeline(
         rules=rules,

@@ -11,6 +11,7 @@ from u1kit.filaments import (
     get_used_filament_indices,
     is_flexible,
     parse_scalar_index,
+    pop_filament_slot,
 )
 
 
@@ -156,3 +157,65 @@ class TestParseScalarIndex:
     )
     def test_parses(self, value: object, expected: int | None) -> None:
         assert parse_scalar_index(value) == expected
+
+
+class TestPopFilamentSlot:
+    def test_pops_parallel_arrays(self) -> None:
+        config = {
+            "filament_colour": ["#A", "#B", "#C", "#D"],
+            "filament_type": ["PLA", "TPU", "PETG", "ABS"],
+            "filament_settings_id": ["w", "x", "y", "z"],
+        }
+        pop_filament_slot(config, 1, target_index=0)
+        assert config["filament_colour"] == ["#A", "#C", "#D"]
+        assert config["filament_type"] == ["PLA", "PETG", "ABS"]
+        assert config["filament_settings_id"] == ["w", "y", "z"]
+
+    def test_remaps_selector_pointing_at_removed(self) -> None:
+        config = {
+            "filament_colour": ["#A", "#B", "#C"],
+            "wall_filament": "2",
+        }
+        pop_filament_slot(config, 1, target_index=0)
+        assert config["wall_filament"] == "1"
+
+    def test_decrements_higher_selector(self) -> None:
+        config = {
+            "filament_colour": ["#A", "#B", "#C"],
+            "wall_filament": "3",
+        }
+        pop_filament_slot(config, 1, target_index=0)
+        assert config["wall_filament"] == "2"
+
+    def test_lower_selector_unchanged(self) -> None:
+        config = {
+            "filament_colour": ["#A", "#B", "#C"],
+            "wall_filament": "1",
+        }
+        pop_filament_slot(config, 1, target_index=0)
+        assert config["wall_filament"] == "1"
+
+    def test_clears_selector_when_no_target(self) -> None:
+        config = {
+            "filament_colour": ["#A", "#B", "#C"],
+            "wall_filament": "2",
+        }
+        pop_filament_slot(config, 1)
+        assert config["wall_filament"] == "0"
+
+    def test_skips_non_parallel_field(self) -> None:
+        config = {
+            "filament_colour": ["#A", "#B", "#C"],
+            "filament_map": ["1", "2", "3", "4"],  # length 4, not count 3 — skipped
+        }
+        pop_filament_slot(config, 1, target_index=0)
+        assert config["filament_map"] == ["1", "2", "3", "4"]
+        assert config["filament_colour"] == ["#A", "#C"]
+
+    def test_out_of_range_is_noop(self) -> None:
+        config = {"filament_colour": ["#A", "#B"]}
+        import copy
+
+        snapshot = copy.deepcopy(config)
+        pop_filament_slot(config, 5)
+        assert config == snapshot
