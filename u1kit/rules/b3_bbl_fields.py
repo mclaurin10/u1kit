@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import re
-
+from u1kit.bbl import is_u1_compatible, normalize_compatible_printers
 from u1kit.rules.base import Context, Result, Rule, Severity
-
-_U1_RE = re.compile(r"\bU1\b", re.IGNORECASE)
 
 # Fields that are Bambu-specific and should be removed for U1
 BBL_FIELDS = (
@@ -44,15 +41,14 @@ class B3BblFields(Rule):
 
         # Check inherits chains pointing to non-U1 profiles
         inherits = config.get("inherits", "")
-        if isinstance(inherits, str) and inherits and not _U1_RE.search(inherits):
+        if isinstance(inherits, str) and inherits and not is_u1_compatible(inherits):
             found.append(f"config: inherits={inherits!r} (non-U1 profile chain)")
 
         # Check compatible_printers for non-U1 entries
         compatible = config.get("compatible_printers", [])
-        if isinstance(compatible, str):
-            compatible = [p.strip() for p in compatible.split(";") if p.strip()]
-        if isinstance(compatible, list):
-            non_u1 = [p for p in compatible if not _U1_RE.search(p)]
+        if isinstance(compatible, (str, list)):
+            printers = normalize_compatible_printers(compatible)
+            non_u1 = [p for p in printers if not is_u1_compatible(p)]
             if non_u1:
                 found.append(f"config: compatible_printers contains non-U1: {non_u1}")
 
@@ -62,13 +58,12 @@ class B3BblFields(Rule):
                 if field_name in fil_config:
                     val = fil_config[field_name]
                     if field_name == "inherits" and isinstance(val, str):
-                        if val and not _U1_RE.search(val):
+                        if val and not is_u1_compatible(val):
                             found.append(f"{path}: {field_name}={val!r}")
                     elif field_name == "compatible_printers":
-                        if isinstance(val, str):
-                            val = [p.strip() for p in val.split(";") if p.strip()]
-                        if isinstance(val, list):
-                            non_u1_f = [p for p in val if not _U1_RE.search(p)]
+                        if isinstance(val, (str, list)):
+                            printers_f = normalize_compatible_printers(val)
+                            non_u1_f = [p for p in printers_f if not is_u1_compatible(p)]
                             if non_u1_f:
                                 found.append(f"{path}: compatible_printers non-U1: {non_u1_f}")
                     else:

@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
+from u1kit.bbl import filter_u1_printers, is_u1_compatible, normalize_compatible_printers
 from u1kit.fixers.base import Fixer
 from u1kit.rules.base import Context
-
-_U1_RE = re.compile(r"\bU1\b", re.IGNORECASE)
 
 BBL_TOP_LEVEL_FIELDS = (
     "bbl_use_printhost",
@@ -35,16 +33,15 @@ class B3BblFieldsFixer(Fixer):
 
         # Remove inherits if it points to a non-U1 profile
         inherits = config.get("inherits", "")
-        if isinstance(inherits, str) and inherits and not _U1_RE.search(inherits):
+        if isinstance(inherits, str) and inherits and not is_u1_compatible(inherits):
             del config["inherits"]
 
         # Clean compatible_printers — keep only U1 entries
         compatible = config.get("compatible_printers", [])
-        if isinstance(compatible, str):
-            compatible = [p.strip() for p in compatible.split(";") if p.strip()]
-        if isinstance(compatible, list):
-            u1_only = [p for p in compatible if _U1_RE.search(p)]
-            if len(u1_only) != len(compatible):
+        if isinstance(compatible, (str, list)):
+            printers = normalize_compatible_printers(compatible)
+            u1_only = filter_u1_printers(compatible)
+            if len(u1_only) != len(printers):
                 if u1_only:
                     config["compatible_printers"] = u1_only
                 else:
@@ -55,15 +52,18 @@ class B3BblFieldsFixer(Fixer):
             fil_config.pop("filament_extruder_variant", None)
 
             fil_inherits = fil_config.get("inherits", "")
-            if isinstance(fil_inherits, str) and fil_inherits and not _U1_RE.search(fil_inherits):
+            if (
+                isinstance(fil_inherits, str)
+                and fil_inherits
+                and not is_u1_compatible(fil_inherits)
+            ):
                 del fil_config["inherits"]
 
             fil_compat = fil_config.get("compatible_printers", [])
-            if isinstance(fil_compat, str):
-                fil_compat = [p.strip() for p in fil_compat.split(";") if p.strip()]
-            if isinstance(fil_compat, list):
-                u1_fil = [p for p in fil_compat if _U1_RE.search(p)]
-                if len(u1_fil) != len(fil_compat):
+            if isinstance(fil_compat, (str, list)):
+                fil_printers = normalize_compatible_printers(fil_compat)
+                u1_fil = filter_u1_printers(fil_compat)
+                if len(u1_fil) != len(fil_printers):
                     if u1_fil:
                         fil_config["compatible_printers"] = u1_fil
                     else:
