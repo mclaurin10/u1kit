@@ -89,6 +89,7 @@ def format_json(
     }
     """
     data: dict[str, Any] = {
+        "schema_version": "1",
         "results": [
             {
                 "rule_id": r.rule_id,
