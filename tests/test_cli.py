@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import zipfile
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -38,6 +39,17 @@ class TestLint:
         assert "results" in data
         assert "summary" in data
         assert data["summary"]["fail"] > 0
+
+    def test_lint_json_has_schema_version(self, tmp_path: Path) -> None:
+        """JSON output must include schema_version field."""
+        path = tmp_path / "test.3mf"
+        path.write_bytes(make_bambu_4color_3mf())
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["lint", str(path), "--json"])
+
+        data = json.loads(result.output)
+        assert data["schema_version"] == "1"
 
     def test_lint_clean_file_passes(self, tmp_path: Path) -> None:
         """A properly configured file should pass lint."""
@@ -112,6 +124,46 @@ class TestFix:
         data = json.loads(result.output)
         assert "results" in data
         assert "fixers" in data
+
+    def test_fix_full_spectrum_d1_heights_equalized(self, tmp_path: Path) -> None:
+        """Full Spectrum file with bad bounds: after fix, all heights = uniform."""
+        path = tmp_path / "test.3mf"
+        out_path = tmp_path / "out.3mf"
+        path.write_bytes(make_full_spectrum_3mf(lower_bound="0.04", layer_height="0.2"))
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["fix", str(path), "--out", str(out_path)]
+        )
+        assert result.exit_code == 0
+
+        # Read the output and check config values
+        from u1kit.archive import read_3mf
+        from u1kit.config import parse_config
+
+        archive = read_3mf(str(out_path))
+        config = parse_config(archive.config_bytes)
+        assert config["layer_height"] == "0.2"
+        assert config["mixed_filament_height_lower_bound"] == "0.2"
+        assert config["mixed_filament_height_upper_bound"] == "0.2"
+
+    def test_fix_thumbnail_survives(self, tmp_path: Path) -> None:
+        """Fake PNG embedded as thumbnail must survive fix byte-identical."""
+        path = tmp_path / "input.3mf"
+        out_path = tmp_path / "output.3mf"
+        path.write_bytes(make_bambu_4color_3mf())
+
+        expected_png = b"\x89PNG\r\n\x1a\nfake_png_data"
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["fix", str(path), "--out", str(out_path)]
+        )
+        assert result.exit_code == 0
+
+        with zipfile.ZipFile(str(out_path), "r") as zf:
+            actual_png = zf.read("Metadata/plate_1/thumbnail.png")
+        assert actual_png == expected_png
 
     def test_fix_uniform_height(self, tmp_path: Path) -> None:
         """--uniform-height should be passed to D1 fixer."""
