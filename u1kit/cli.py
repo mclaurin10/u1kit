@@ -13,6 +13,7 @@ from u1kit.archive import read_3mf, write_3mf
 from u1kit.config import emit_config, parse_config
 from u1kit.fixers import get_fixer_map
 from u1kit.fixers.base import Fixer, FixMode, Pipeline
+from u1kit.interactive import FixAction, prompt_fix
 from u1kit.report import format_human, format_json
 from u1kit.rules import RULES, get_rule
 from u1kit.rules.base import Context, Result, Rule, Severity
@@ -215,10 +216,10 @@ def presets_list(use_json: bool) -> None:
 
 def _interactive_prompt(result: Result, fixer: Fixer) -> bool:
     """Prompt user to accept/skip a fix in interactive mode."""
-    click.echo(f"\n[{result.rule_id}] {result.message}")
-    if result.diff_preview:
-        click.echo(f"  Preview: {result.diff_preview}")
-    return click.confirm(f"  Apply fix '{fixer.id}'?", default=True)
+    action = prompt_fix(result, fixer)
+    if action is FixAction.QUIT:
+        raise click.Abort()
+    return action is FixAction.APPLY
 
 
 if __name__ == "__main__":
