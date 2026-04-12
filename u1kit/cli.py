@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import sys
 from importlib.resources import as_file, files
+from pathlib import Path
 from typing import Any
 
 import click
 import yaml
+from platformdirs import user_config_path
 
 from u1kit.archive import read_3mf, write_3mf
 from u1kit.config import emit_config, parse_config
@@ -19,10 +21,44 @@ from u1kit.rules import RULES, get_rule
 from u1kit.rules.base import Context, Result, Rule, Severity
 
 
+def _user_preset_dir() -> Path:
+    """Return the user's preset directory (cross-platform).
+
+    Uses platformdirs so the location matches platform conventions:
+    - Linux/macOS: ~/.config/u1kit/presets
+    - Windows: %APPDATA%/u1kit/presets
+    """
+    return user_config_path("u1kit") / "presets"
+
+
 def _load_preset(name: str) -> dict[str, Any]:
-    """Load a preset YAML file by name."""
-    # Try underscore form first (bambu_to_u1.yaml), then hyphenated
-    for filename in (f"{name.replace('-', '_')}.yaml", f"{name}.yaml"):
+    """Load a preset YAML file by name.
+
+    Search order:
+    1. User preset dir (`_user_preset_dir()`), if it exists.
+    2. Bundled `u1kit.presets` package resources.
+
+    Accepts both hyphenated (`bambu-to-u1.yaml`) and underscored
+    (`bambu_to_u1.yaml`) filenames.
+    """
+    filenames = (f"{name}.yaml", f"{name.replace('-', '_')}.yaml")
+
+    # 1. User preset dir.
+    user_dir = _user_preset_dir()
+    if user_dir.is_dir():
+        for filename in filenames:
+            path = user_dir / filename
+            if path.exists():
+                data = yaml.safe_load(path.read_text(encoding="utf-8"))
+                if not isinstance(data, dict):
+                    click.echo(
+                        f"Error: user preset {name!r} is malformed.", err=True
+                    )
+                    sys.exit(1)
+                return data
+
+    # 2. Bundled package resources.
+    for filename in filenames:
         ref = files("u1kit.presets").joinpath(filename)
         try:
             with as_file(ref) as path:
@@ -40,10 +76,42 @@ def _load_preset(name: str) -> dict[str, Any]:
 
 
 def _list_presets() -> list[dict[str, str]]:
-    """List available presets."""
-    presets_pkg = files("u1kit.presets")
-    result: list[dict[str, str]] = []
+    """List available presets, tagged by source.
 
+    User-dir presets are listed first; bundled presets are listed after,
+    skipped if a user preset with the same name already appeared.
+    Each entry is `{"name", "description", "source"}` where source is
+    `"user"` or `"bundled"`.
+    """
+    result: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    # User presets first.
+    user_dir = _user_preset_dir()
+    if user_dir.is_dir():
+        for path in sorted(user_dir.iterdir()):
+            if path.suffix != ".yaml" or not path.is_file():
+                continue
+            try:
+                data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            except (OSError, yaml.YAMLError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            name = str(data.get("name", path.stem))
+            if name in seen:
+                continue
+            seen.add(name)
+            result.append(
+                {
+                    "name": name,
+                    "description": str(data.get("description", "")),
+                    "source": "user",
+                }
+            )
+
+    # Bundled presets.
+    presets_pkg = files("u1kit.presets")
     for item in presets_pkg.iterdir():
         item_name = item.name
         if not item_name.endswith(".yaml"):
@@ -53,11 +121,20 @@ def _list_presets() -> list[dict[str, str]]:
         except (TypeError, AttributeError):
             continue
         data = yaml.safe_load(text)
-        if isinstance(data, dict):
-            result.append({
-                "name": data.get("name", item_name[:-5]),
-                "description": data.get("description", ""),
-            })
+        if not isinstance(data, dict):
+            continue
+        name = str(data.get("name", item_name[:-5]))
+        if name in seen:
+            continue
+        seen.add(name)
+        result.append(
+            {
+                "name": name,
+                "description": str(data.get("description", "")),
+                "source": "bundled",
+            }
+        )
+
     return result
 
 
@@ -203,7 +280,7 @@ def presets() -> None:
 @presets.command("list")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON")
 def presets_list(use_json: bool) -> None:
-    """List available presets."""
+    """List available presets (user + bundled)."""
     import json as json_mod
 
     available = _list_presets()
@@ -211,7 +288,9 @@ def presets_list(use_json: bool) -> None:
         click.echo(json_mod.dumps(available, indent=2))
     else:
         for p in available:
-            click.echo(f"  {p['name']}: {p['description']}")
+            click.echo(
+                f"  {p['name']} [{p['source']}]: {p['description']}"
+            )
 
 
 def _interactive_prompt(result: Result, fixer: Fixer) -> bool:

@@ -6,6 +6,7 @@ import json
 import zipfile
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from tests.conftest import make_bambu_4color_3mf, make_full_spectrum_3mf
@@ -197,3 +198,95 @@ class TestPresets:
         data = json.loads(result.output)
         assert isinstance(data, list)
         assert any(p["name"] == "bambu-to-u1" for p in data)
+
+
+class TestUserPresetLoader:
+    """User-defined presets from platformdirs user config dir."""
+
+    def test_user_preset_loads(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user_dir = tmp_path / "presets"
+        user_dir.mkdir()
+        (user_dir / "my-custom.yaml").write_text(
+            "name: my-custom\n"
+            "description: user-defined\n"
+            "rules: [A2]\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("u1kit.cli._user_preset_dir", lambda: user_dir)
+
+        from u1kit.cli import _load_preset
+
+        data = _load_preset("my-custom")
+        assert data["description"] == "user-defined"
+        assert data["rules"] == ["A2"]
+
+    def test_user_preset_overrides_bundled(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user_dir = tmp_path / "presets"
+        user_dir.mkdir()
+        (user_dir / "bambu-to-u1.yaml").write_text(
+            "name: bambu-to-u1\n"
+            "description: overridden by user\n"
+            "rules: [A2]\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("u1kit.cli._user_preset_dir", lambda: user_dir)
+
+        from u1kit.cli import _load_preset
+
+        data = _load_preset("bambu-to-u1")
+        assert data["description"] == "overridden by user"
+
+    def test_presets_list_tags_source(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user_dir = tmp_path / "presets"
+        user_dir.mkdir()
+        (user_dir / "custom.yaml").write_text(
+            "name: custom\n"
+            "description: my custom one\n"
+            "rules: [A2]\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("u1kit.cli._user_preset_dir", lambda: user_dir)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["presets", "list"])
+        assert result.exit_code == 0
+        assert "bundled" in result.output
+        assert "user" in result.output
+        assert "custom" in result.output
+        assert "bambu-to-u1" in result.output
+
+    def test_presets_list_json_tags_source(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        user_dir = tmp_path / "presets"
+        user_dir.mkdir()
+        (user_dir / "custom.yaml").write_text(
+            "name: custom\ndescription: x\nrules: [A2]\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("u1kit.cli._user_preset_dir", lambda: user_dir)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["presets", "list", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        names = {p["name"]: p for p in data}
+        assert names["custom"]["source"] == "user"
+        assert names["bambu-to-u1"]["source"] == "bundled"
+
+    def test_nonexistent_user_dir_falls_back_to_bundled(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "u1kit.cli._user_preset_dir", lambda: tmp_path / "does-not-exist"
+        )
+        from u1kit.cli import _load_preset
+
+        data = _load_preset("bambu-to-u1")
+        assert data["name"] == "bambu-to-u1"
