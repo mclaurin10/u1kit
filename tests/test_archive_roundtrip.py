@@ -89,6 +89,45 @@ class TestArchiveRoundtrip:
 
         assert names == orig_names
 
+    def test_filament_config_roundtrip(self) -> None:
+        """Filament configs should survive read/write and support in-place edits."""
+        fil1 = {"filament_type": "PLA", "temperature": "210"}
+        fil2 = {"filament_type": "PETG", "temperature": "240"}
+
+        original = make_3mf(
+            filament_configs={
+                "Metadata/filament_1.config": fil1,
+                "Metadata/filament_2.config": fil2,
+            }
+        )
+
+        archive = read_3mf(io.BytesIO(original))
+
+        # Verify initial read
+        raw_fils = archive.get_filament_configs()
+        assert set(raw_fils.keys()) == {
+            "Metadata/filament_1.config",
+            "Metadata/filament_2.config",
+        }
+        assert parse_config(raw_fils["Metadata/filament_1.config"]) == fil1
+        assert parse_config(raw_fils["Metadata/filament_2.config"]) == fil2
+
+        # Modify one filament config
+        modified_fil1 = {**fil1, "temperature": "215"}
+        archive.set_filament_config(
+            "Metadata/filament_1.config", emit_config(modified_fil1)
+        )
+
+        # Write and re-read
+        output = io.BytesIO()
+        write_3mf(archive, output)
+        output.seek(0)
+        archive2 = read_3mf(output)
+
+        raw_fils2 = archive2.get_filament_configs()
+        assert parse_config(raw_fils2["Metadata/filament_1.config"]) == modified_fil1
+        assert parse_config(raw_fils2["Metadata/filament_2.config"]) == fil2
+
     def test_empty_config_still_round_trips(self) -> None:
         """An empty config dict should round-trip correctly."""
         original = make_3mf(config={})
