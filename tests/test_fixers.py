@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import io
 from typing import Any
 
@@ -279,3 +280,89 @@ class TestFullPipeline:
         assert updated["layer_height"] == "0.2"
         assert updated["mixed_filament_height_lower_bound"] == "0.2"
         assert updated["mixed_filament_height_upper_bound"] == "0.2"
+
+
+class TestFixerIdempotency:
+    """Applying a fixer twice should produce the same state as applying once."""
+
+    def test_a2_idempotent(self) -> None:
+        from u1kit.fixers.a2_printer_profile import A2PrinterProfileFixer
+
+        config: dict[str, Any] = {
+            "printer_settings_id": "Bambu Lab X1 Carbon 0.4 nozzle",
+            "printer_model": "Bambu Lab X1 Carbon",
+        }
+        fixer = A2PrinterProfileFixer()
+        ctx = Context(config=config)
+        fixer.apply(config, {}, ctx)
+        snapshot = copy.deepcopy(config)
+        fixer.apply(config, {}, ctx)
+        assert config == snapshot
+
+    def test_a3_idempotent(self) -> None:
+        from u1kit.fixers.a3_bambu_macros import A3BambuMacrosFixer
+
+        config: dict[str, Any] = {
+            "machine_start_gcode": "G28\nM620 S0A\nG1 X0\n",
+            "machine_end_gcode": "M400\n",
+            "change_filament_gcode": "M620 S[next_extruder]A\nT1\nM621 S1A\n",
+            "layer_change_gcode": ";LAYER_CHANGE\n",
+        }
+        fixer = A3BambuMacrosFixer()
+        ctx = Context(config=config)
+        fixer.apply(config, {}, ctx)
+        snapshot = copy.deepcopy(config)
+        fixer.apply(config, {}, ctx)
+        assert config == snapshot
+
+    def test_b2_idempotent(self) -> None:
+        from u1kit.fixers.b2_filament_mapping import B2FilamentMappingFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": "#FF0000;#00FF00;#0000FF;#FFFF00",
+        }
+        fixer = B2FilamentMappingFixer()
+        ctx = Context(config=config)
+        fixer.apply(config, {}, ctx)
+        snapshot = copy.deepcopy(config)
+        fixer.apply(config, {}, ctx)
+        assert config == snapshot
+
+    def test_b3_idempotent(self) -> None:
+        from u1kit.fixers.b3_bbl_fields import B3BblFieldsFixer
+
+        config: dict[str, Any] = {
+            "bbl_use_printhost": "1",
+            "bbl_calib_mark_logo": "1",
+            "inherits": "Bambu Lab X1 Carbon 0.4 nozzle",
+            "compatible_printers": "Bambu Lab X1 Carbon 0.4 nozzle",
+        }
+        filament_configs: dict[str, dict[str, Any]] = {
+            "Metadata/filament_1.config": {
+                "filament_extruder_variant": "BBL X1C 0.4",
+                "inherits": "Bambu Lab Generic PLA",
+            }
+        }
+        fixer = B3BblFieldsFixer()
+        ctx = Context(config=config, filament_configs=filament_configs)
+        fixer.apply(config, filament_configs, ctx)
+        snap_config = copy.deepcopy(config)
+        snap_fils = copy.deepcopy(filament_configs)
+        fixer.apply(config, filament_configs, ctx)
+        assert config == snap_config
+        assert filament_configs == snap_fils
+
+    def test_d1_idempotent(self) -> None:
+        from u1kit.fixers.d1_mixed_height_bounds import D1MixedHeightBoundsFixer
+
+        config: dict[str, Any] = {
+            "layer_height": "0.2",
+            "mixed_filament_height_lower_bound": "0.04",
+            "mixed_filament_height_upper_bound": "0.4",
+        }
+        fixer = D1MixedHeightBoundsFixer()
+        ctx = Context(config=config, options={"uniform_height": 0.2})
+        fixer.apply(config, {}, ctx)
+        snapshot = copy.deepcopy(config)
+        fixer.apply(config, {}, ctx)
+        assert config == snapshot
