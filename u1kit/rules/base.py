@@ -5,7 +5,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from u1kit.geometry import ObjectBounds
 
 
 class Severity(Enum):
@@ -42,6 +45,7 @@ class Context:
     filament_configs: dict[str, dict[str, Any]] = field(default_factory=dict)
     source_slicer: str | None = None
     options: dict[str, Any] = field(default_factory=dict)
+    geometry_bounds: list[ObjectBounds] | None = None
 
 
 class Rule(ABC):

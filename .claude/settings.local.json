@@ -16,7 +16,9 @@
       "Bash(python -c \"from u1kit.cli import main; main\\(\\)\" lint tests/fixtures/real/u1_native.3mf --json)",
       "Bash(python -m pytest tests/test_e2e.py -v)",
       "Bash(python -m pytest tests/test_cli.py -v)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest tests/test_geometry.py)",
+      "Bash(python -m ruff check u1kit/ tests/ --fix)"
     ]
   }
 }
