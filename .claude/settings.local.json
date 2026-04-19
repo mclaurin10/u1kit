@@ -18,7 +18,9 @@
       "Bash(python -m pytest tests/test_cli.py -v)",
       "Bash(python -c ' *)",
       "Bash(python -m pytest tests/test_geometry.py)",
-      "Bash(python -m ruff check u1kit/ tests/ --fix)"
+      "Bash(python -m ruff check u1kit/ tests/ --fix)",
+      "Bash(python -m pytest tests/test_rules.py::TestE1ThinFeature)",
+      "Bash(python -m pytest tests/test_rules.py::TestE1ThinFeature::test_ratio_of_three_is_boundary_pass -v)"
     ]
   }
 }
