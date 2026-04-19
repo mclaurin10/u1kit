@@ -13,6 +13,8 @@ from u1kit.rules.b5_flexible_support import B5FlexibleSupport
 from u1kit.rules.base import Context, Result, Rule, Severity
 from u1kit.rules.c1_bed_temp_conflict import C1BedTempConflict
 from u1kit.rules.c2_first_layer_bed_temp import C2FirstLayerBedTemp
+from u1kit.rules.c3_slow_down_layer_time import C3SlowDownLayerTime
+from u1kit.rules.c4_fan_speed_range import C4FanSpeedRange
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
 
 __all__ = [
@@ -36,6 +38,8 @@ RULES: list[type[Rule]] = [
     B5FlexibleSupport,
     C1BedTempConflict,
     C2FirstLayerBedTemp,
+    C3SlowDownLayerTime,
+    C4FanSpeedRange,
     D1MixedHeightBounds,
 ]
 

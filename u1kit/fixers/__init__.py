@@ -12,6 +12,7 @@ from u1kit.fixers.b5_flexible_support import B5FlexibleSupportFixer
 from u1kit.fixers.base import Fixer, FixerResult, FixMode, Pipeline
 from u1kit.fixers.c1_bed_temp_conflict import C1BedTempConflictFixer
 from u1kit.fixers.c2_first_layer_bed_temp import C2FirstLayerBedTempFixer
+from u1kit.fixers.c3_slow_down_layer_time import C3SlowDownLayerTimeFixer
 from u1kit.fixers.d1_mixed_height_bounds import D1MixedHeightBoundsFixer
 
 __all__ = [
@@ -34,6 +35,7 @@ FIXERS: list[type[Fixer]] = [
     B5FlexibleSupportFixer,
     C1BedTempConflictFixer,
     C2FirstLayerBedTempFixer,
+    C3SlowDownLayerTimeFixer,
     D1MixedHeightBoundsFixer,
 ]
 

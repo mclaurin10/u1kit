@@ -670,3 +670,61 @@ class TestC2Fixer:
         C2FirstLayerBedTempFixer().apply(config, {}, Context(config=config))
         results = C2FirstLayerBedTemp().check(Context(config=config))
         assert len(results) == 0
+
+
+class TestC3Fixer:
+    """C3 fixer: set used slow_down_layer_time to max() across used slots."""
+
+    def test_sets_used_slots_to_max(self) -> None:
+        from u1kit.fixers.c3_slow_down_layer_time import C3SlowDownLayerTimeFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "slow_down_layer_time": ["4", "12"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C3SlowDownLayerTimeFixer().apply(config, {}, Context(config=config))
+        assert config["slow_down_layer_time"] == ["12", "12"]
+
+    def test_unused_slot_preserved(self) -> None:
+        from u1kit.fixers.c3_slow_down_layer_time import C3SlowDownLayerTimeFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111", "#222"],
+            "slow_down_layer_time": ["4", "12", "30"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C3SlowDownLayerTimeFixer().apply(config, {}, Context(config=config))
+        assert config["slow_down_layer_time"][0] == "12"
+        assert config["slow_down_layer_time"][1] == "12"
+        assert config["slow_down_layer_time"][2] == "30"
+
+    def test_idempotent(self) -> None:
+        from u1kit.fixers.c3_slow_down_layer_time import C3SlowDownLayerTimeFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "slow_down_layer_time": ["4", "12"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C3SlowDownLayerTimeFixer().apply(config, {}, Context(config=config))
+        snapshot = copy.deepcopy(config)
+        C3SlowDownLayerTimeFixer().apply(config, {}, Context(config=config))
+        assert config == snapshot
+
+    def test_post_fix_passes_lint(self) -> None:
+        from u1kit.fixers.c3_slow_down_layer_time import C3SlowDownLayerTimeFixer
+        from u1kit.rules.c3_slow_down_layer_time import C3SlowDownLayerTime
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "slow_down_layer_time": ["4", "12"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C3SlowDownLayerTimeFixer().apply(config, {}, Context(config=config))
+        results = C3SlowDownLayerTime().check(Context(config=config))
+        assert len(results) == 0

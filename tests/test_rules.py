@@ -13,6 +13,8 @@ from u1kit.rules.b5_flexible_support import B5FlexibleSupport
 from u1kit.rules.base import Context, Severity
 from u1kit.rules.c1_bed_temp_conflict import C1BedTempConflict
 from u1kit.rules.c2_first_layer_bed_temp import C2FirstLayerBedTemp
+from u1kit.rules.c3_slow_down_layer_time import C3SlowDownLayerTime
+from u1kit.rules.c4_fan_speed_range import C4FanSpeedRange
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
 
 
@@ -537,4 +539,113 @@ class TestC2FirstLayerBedTemp:
             "sparse_infill_filament": "1",
         })
         results = C2FirstLayerBedTemp().check(ctx)
+        assert len(results) == 0
+
+
+class TestC3SlowDownLayerTime:
+    """C3: cooling-time conflict — pick the max across used filaments."""
+
+    def test_uniform_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "slow_down_layer_time": ["4", "4"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C3SlowDownLayerTime().check(ctx)
+        assert len(results) == 0
+
+    def test_conflicting_fails(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "slow_down_layer_time": ["4", "12"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C3SlowDownLayerTime().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+        assert results[0].fixer_id == "c3"
+
+    def test_unused_slot_ignored(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "slow_down_layer_time": ["4", "12"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "1",
+        })
+        results = C3SlowDownLayerTime().check(ctx)
+        assert len(results) == 0
+
+    def test_missing_field_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C3SlowDownLayerTime().check(ctx)
+        assert len(results) == 0
+
+    def test_single_used_slot_never_conflicts(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "slow_down_layer_time": ["4", "12"],
+            "wall_filament": "1",
+        })
+        results = C3SlowDownLayerTime().check(ctx)
+        assert len(results) == 0
+
+
+class TestC4FanSpeedRange:
+    """C4: info-only report of differing fan ranges across used filaments."""
+
+    def test_uniform_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "fan_max_speed": ["100", "100"],
+            "fan_min_speed": ["20", "20"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C4FanSpeedRange().check(ctx)
+        assert len(results) == 0
+
+    def test_differing_max_emits_info(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "fan_max_speed": ["100", "50"],
+            "fan_min_speed": ["20", "20"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C4FanSpeedRange().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.INFO
+        assert results[0].fixer_id is None
+        assert "fan_max_speed" in results[0].message
+
+    def test_differing_min_emits_info(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "fan_max_speed": ["100", "100"],
+            "fan_min_speed": ["20", "0"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C4FanSpeedRange().check(ctx)
+        assert len(results) == 1
+        assert "fan_min_speed" in results[0].message
+
+    def test_unused_slots_ignored(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "fan_max_speed": ["100", "50"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "1",
+        })
+        results = C4FanSpeedRange().check(ctx)
+        assert len(results) == 0
+
+    def test_missing_fields_passes(self) -> None:
+        results = C4FanSpeedRange().check(Context(config={}))
         assert len(results) == 0
