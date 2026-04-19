@@ -16,6 +16,8 @@ from u1kit.rules.c2_first_layer_bed_temp import C2FirstLayerBedTemp
 from u1kit.rules.c3_slow_down_layer_time import C3SlowDownLayerTime
 from u1kit.rules.c4_fan_speed_range import C4FanSpeedRange
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
+from u1kit.rules.d2_z_hop_magnitude import D2ZHopMagnitude
+from u1kit.rules.d3_alternation_cost import D3AlternationCost
 
 __all__ = [
     "RULES",
@@ -40,6 +42,8 @@ RULES: list[type[Rule]] = [
     C2FirstLayerBedTemp,
     C3SlowDownLayerTime,
     C4FanSpeedRange,
+    D2ZHopMagnitude,
+    D3AlternationCost,
     D1MixedHeightBounds,
 ]
 

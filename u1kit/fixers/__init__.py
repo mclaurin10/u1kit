@@ -14,6 +14,7 @@ from u1kit.fixers.c1_bed_temp_conflict import C1BedTempConflictFixer
 from u1kit.fixers.c2_first_layer_bed_temp import C2FirstLayerBedTempFixer
 from u1kit.fixers.c3_slow_down_layer_time import C3SlowDownLayerTimeFixer
 from u1kit.fixers.d1_mixed_height_bounds import D1MixedHeightBoundsFixer
+from u1kit.fixers.d2_z_hop_magnitude import D2ZHopMagnitudeFixer
 
 __all__ = [
     "FIXERS",
@@ -36,6 +37,7 @@ FIXERS: list[type[Fixer]] = [
     C1BedTempConflictFixer,
     C2FirstLayerBedTempFixer,
     C3SlowDownLayerTimeFixer,
+    D2ZHopMagnitudeFixer,
     D1MixedHeightBoundsFixer,
 ]
 

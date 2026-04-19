@@ -16,6 +16,8 @@ from u1kit.rules.c2_first_layer_bed_temp import C2FirstLayerBedTemp
 from u1kit.rules.c3_slow_down_layer_time import C3SlowDownLayerTime
 from u1kit.rules.c4_fan_speed_range import C4FanSpeedRange
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
+from u1kit.rules.d2_z_hop_magnitude import D2ZHopMagnitude
+from u1kit.rules.d3_alternation_cost import D3AlternationCost
 
 
 class TestA1SourceSlicer:
@@ -649,3 +651,150 @@ class TestC4FanSpeedRange:
     def test_missing_fields_passes(self) -> None:
         results = C4FanSpeedRange().check(Context(config={}))
         assert len(results) == 0
+
+
+class TestD2ZHopMagnitude:
+    """D2: warn when z-hop magnitude is >= 5x layer_height on any used slot."""
+
+    def test_no_z_hop_fields_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = D2ZHopMagnitude().check(ctx)
+        assert len(results) == 0
+
+    def test_z_hop_below_trigger_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["0.5", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = D2ZHopMagnitude().check(ctx)
+        assert len(results) == 0
+
+    def test_z_hop_at_trigger_warns(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["1.0", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = D2ZHopMagnitude().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.WARN
+        assert results[0].fixer_id == "d2"
+
+    def test_filament_z_hop_trips_trigger(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "filament_z_hop": ["1.0", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = D2ZHopMagnitude().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.WARN
+
+    def test_max_of_both_fields(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["0.5", "0.5"],
+            "filament_z_hop": ["1.2", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = D2ZHopMagnitude().check(ctx)
+        assert len(results) == 1
+
+    def test_unused_slot_ignored(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["0.5", "2.0"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "1",
+        })
+        results = D2ZHopMagnitude().check(ctx)
+        assert len(results) == 0
+
+    def test_missing_layer_height_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "z_hop": ["2.0", "2.0"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = D2ZHopMagnitude().check(ctx)
+        assert len(results) == 0
+
+    def test_empty_string_values_treated_as_zero(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["", ""],
+            "filament_z_hop": ["", ""],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = D2ZHopMagnitude().check(ctx)
+        assert len(results) == 0
+
+
+class TestD3AlternationCost:
+    """D3: info-only notice when >=1 1:1 alternating blend exists."""
+
+    def test_no_mixed_definitions_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = D3AlternationCost().check(ctx)
+        assert len(results) == 0
+
+    def test_empty_mixed_definitions_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "mixed_filament_definitions": "",
+        })
+        results = D3AlternationCost().check(ctx)
+        assert len(results) == 0
+
+    def test_50_50_blend_emits_info(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "mixed_filament_definitions": "1,2,0,1,50,0,5,0,0,0,0,0",
+        })
+        results = D3AlternationCost().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.INFO
+        assert results[0].fixer_id is None
+
+    def test_non_50_blend_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "mixed_filament_definitions": "1,2,0,1,33,0,5,0,0,0,0,0",
+        })
+        results = D3AlternationCost().check(ctx)
+        assert len(results) == 0
+
+    def test_multiple_blends_only_counts_50(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "mixed_filament_definitions": (
+                "1,2,0,1,50,0,5,0,0,0,0,0;"
+                "1,3,0,1,33,0,5,0,0,0,0,0;"
+                "1,4,0,1,50,0,5,0,0,0,0,0"
+            ),
+        })
+        results = D3AlternationCost().check(ctx)
+        assert len(results) == 1
+        assert "2" in results[0].message

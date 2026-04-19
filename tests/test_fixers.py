@@ -728,3 +728,102 @@ class TestC3Fixer:
         C3SlowDownLayerTimeFixer().apply(config, {}, Context(config=config))
         results = C3SlowDownLayerTime().check(Context(config=config))
         assert len(results) == 0
+
+
+class TestD2Fixer:
+    """D2 fixer: cap z_hop to min(1.5, 4*layer_height), zero filament_z_hop."""
+
+    def test_caps_z_hop(self) -> None:
+        from u1kit.fixers.d2_z_hop_magnitude import D2ZHopMagnitudeFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["2.0", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        D2ZHopMagnitudeFixer().apply(config, {}, Context(config=config))
+        # target = min(1.5, 4*0.2) = 0.8
+        assert config["z_hop"][0] == "0.8"
+        assert config["z_hop"][1] == "0.5"
+        assert config["filament_z_hop"][0] == "0"
+
+    def test_zeros_filament_z_hop_when_only_that_field_trips(self) -> None:
+        from u1kit.fixers.d2_z_hop_magnitude import D2ZHopMagnitudeFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["0.5", "0.5"],
+            "filament_z_hop": ["2.0", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        D2ZHopMagnitudeFixer().apply(config, {}, Context(config=config))
+        # z_hop[0] was below trigger, so not capped
+        assert config["z_hop"][0] == "0.5"
+        # filament_z_hop[0] always zeroed when the slot trips
+        assert config["filament_z_hop"][0] == "0"
+        assert config["filament_z_hop"][1] == "0.5"
+
+    def test_unused_slot_preserved(self) -> None:
+        from u1kit.fixers.d2_z_hop_magnitude import D2ZHopMagnitudeFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111", "#222"],
+            "layer_height": "0.2",
+            "z_hop": ["2.0", "0.5", "3.0"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        D2ZHopMagnitudeFixer().apply(config, {}, Context(config=config))
+        assert config["z_hop"][0] == "0.8"
+        assert config["z_hop"][1] == "0.5"
+        # slot 2 is unused, preserved even though it trips
+        assert config["z_hop"][2] == "3.0"
+
+    def test_no_trip_is_noop(self) -> None:
+        from u1kit.fixers.d2_z_hop_magnitude import D2ZHopMagnitudeFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["0.5", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        before = copy.deepcopy(config)
+        D2ZHopMagnitudeFixer().apply(config, {}, Context(config=config))
+        assert config == before
+
+    def test_idempotent(self) -> None:
+        from u1kit.fixers.d2_z_hop_magnitude import D2ZHopMagnitudeFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["2.0", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        D2ZHopMagnitudeFixer().apply(config, {}, Context(config=config))
+        snapshot = copy.deepcopy(config)
+        D2ZHopMagnitudeFixer().apply(config, {}, Context(config=config))
+        assert config == snapshot
+
+    def test_post_fix_passes_lint(self) -> None:
+        from u1kit.fixers.d2_z_hop_magnitude import D2ZHopMagnitudeFixer
+        from u1kit.rules.d2_z_hop_magnitude import D2ZHopMagnitude
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "layer_height": "0.2",
+            "z_hop": ["2.0", "0.5"],
+            "filament_z_hop": ["1.8", "0.5"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        D2ZHopMagnitudeFixer().apply(config, {}, Context(config=config))
+        results = D2ZHopMagnitude().check(Context(config=config))
+        assert len(results) == 0
