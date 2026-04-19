@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/test_rules.py -k \"TestC1 or TestC2\" --no-header -x)",
+      "Bash(python -m pytest tests/test_rules.py tests/test_fixers.py -k \"TestC1 or TestC2\" --no-header)",
+      "Bash(python -m pytest --no-header)",
+      "Bash(python -m mypy --strict u1kit/)",
+      "Bash(python -m ruff check u1kit/ tests/)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
