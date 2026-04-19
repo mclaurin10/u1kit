@@ -152,6 +152,36 @@ def tmp_3mf(tmp_path: Path, bambu_4color_3mf_bytes: bytes) -> Path:
     return path
 
 
+def make_model_xml(
+    objects: list[tuple[str, list[tuple[float, float, float]]]],
+) -> bytes:
+    """Build a minimal 3MF 3D/3dmodel.model XML with inline vertices.
+
+    Each object is ``(obj_id, [(x, y, z), ...])``.
+    """
+    ns = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
+    parts: list[str] = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        f'<model unit="millimeter" xmlns="{ns}">',
+        "<resources>",
+    ]
+    for obj_id, verts in objects:
+        parts.append(f'<object id="{obj_id}" type="model"><mesh><vertices>')
+        for x, y, z in verts:
+            parts.append(f'<vertex x="{x}" y="{y}" z="{z}"/>')
+        parts.append("</vertices></mesh></object>")
+    parts.append("</resources><build/></model>")
+    return "".join(parts).encode("utf-8")
+
+
+@pytest.fixture
+def geometry_info() -> bytes:
+    """Minimal 3D/3dmodel.model XML with one thin-walled object."""
+    return make_model_xml([
+        ("1", [(0.0, 0.0, 0.0), (100.0, 2.0, 10.0), (50.0, 1.0, 5.0)]),
+    ])
+
+
 @pytest.fixture
 def u1_native_3mf_path() -> Path:
     """Path to the real Snapmaker Orca native U1 export fixture."""
