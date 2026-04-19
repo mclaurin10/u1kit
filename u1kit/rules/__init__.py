@@ -11,6 +11,8 @@ from u1kit.rules.b3_bbl_fields import B3BblFields
 from u1kit.rules.b4_flexible_speed_caps import B4FlexibleSpeedCaps
 from u1kit.rules.b5_flexible_support import B5FlexibleSupport
 from u1kit.rules.base import Context, Result, Rule, Severity
+from u1kit.rules.c1_bed_temp_conflict import C1BedTempConflict
+from u1kit.rules.c2_first_layer_bed_temp import C2FirstLayerBedTemp
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
 
 __all__ = [
@@ -32,6 +34,8 @@ RULES: list[type[Rule]] = [
     B3BblFields,
     B4FlexibleSpeedCaps,
     B5FlexibleSupport,
+    C1BedTempConflict,
+    C2FirstLayerBedTemp,
     D1MixedHeightBounds,
 ]
 

@@ -526,3 +526,147 @@ class TestB5Fixer:
         B5FlexibleSupportFixer().apply(config, {}, Context(config=config))
         results = B5FlexibleSupport().check(Context(config=config))
         assert len(results) == 0
+
+
+class TestC1Fixer:
+    """C1 fixer: normalize conflicting bed-temp fields to min across used slots."""
+
+    def test_sets_used_slots_to_min(self) -> None:
+        from u1kit.fixers.c1_bed_temp_conflict import C1BedTempConflictFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "60"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C1BedTempConflictFixer().apply(config, {}, Context(config=config))
+        assert config["hot_plate_temp"] == ["50", "50"]
+
+    def test_leaves_unused_slot_alone(self) -> None:
+        from u1kit.fixers.c1_bed_temp_conflict import C1BedTempConflictFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111", "#222"],
+            "hot_plate_temp": ["50", "60", "100"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C1BedTempConflictFixer().apply(config, {}, Context(config=config))
+        assert config["hot_plate_temp"][0] == "50"
+        assert config["hot_plate_temp"][1] == "50"
+        assert config["hot_plate_temp"][2] == "100"
+
+    def test_multiple_fields_normalized(self) -> None:
+        from u1kit.fixers.c1_bed_temp_conflict import C1BedTempConflictFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "60"],
+            "textured_plate_temp": ["55", "65"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C1BedTempConflictFixer().apply(config, {}, Context(config=config))
+        assert config["hot_plate_temp"] == ["50", "50"]
+        assert config["textured_plate_temp"] == ["55", "55"]
+
+    def test_idempotent(self) -> None:
+        from u1kit.fixers.c1_bed_temp_conflict import C1BedTempConflictFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "60"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C1BedTempConflictFixer().apply(config, {}, Context(config=config))
+        snapshot = copy.deepcopy(config)
+        C1BedTempConflictFixer().apply(config, {}, Context(config=config))
+        assert config == snapshot
+
+    def test_post_fix_passes_lint(self) -> None:
+        from u1kit.fixers.c1_bed_temp_conflict import C1BedTempConflictFixer
+        from u1kit.rules.c1_bed_temp_conflict import C1BedTempConflict
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "60"],
+            "textured_plate_temp": ["55", "65"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C1BedTempConflictFixer().apply(config, {}, Context(config=config))
+        results = C1BedTempConflict().check(Context(config=config))
+        assert len(results) == 0
+
+
+class TestC2Fixer:
+    """C2 fixer: normalize first-layer bed-temp + 65C cap on textured."""
+
+    def test_sets_used_slots_to_min(self) -> None:
+        from u1kit.fixers.c2_first_layer_bed_temp import C2FirstLayerBedTempFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp_initial_layer": ["50", "60"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C2FirstLayerBedTempFixer().apply(config, {}, Context(config=config))
+        assert config["hot_plate_temp_initial_layer"] == ["50", "50"]
+
+    def test_textured_capped_at_65(self) -> None:
+        from u1kit.fixers.c2_first_layer_bed_temp import C2FirstLayerBedTempFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "textured_plate_temp_initial_layer": ["70", "70"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C2FirstLayerBedTempFixer().apply(config, {}, Context(config=config))
+        assert config["textured_plate_temp_initial_layer"] == ["65", "65"]
+
+    def test_hot_initial_not_capped_at_65(self) -> None:
+        from u1kit.fixers.c2_first_layer_bed_temp import C2FirstLayerBedTempFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp_initial_layer": ["70", "70"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        snapshot = copy.deepcopy(config)
+        C2FirstLayerBedTempFixer().apply(config, {}, Context(config=config))
+        assert config == snapshot
+
+    def test_idempotent(self) -> None:
+        from u1kit.fixers.c2_first_layer_bed_temp import C2FirstLayerBedTempFixer
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp_initial_layer": ["50", "60"],
+            "textured_plate_temp_initial_layer": ["70", "75"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C2FirstLayerBedTempFixer().apply(config, {}, Context(config=config))
+        snapshot = copy.deepcopy(config)
+        C2FirstLayerBedTempFixer().apply(config, {}, Context(config=config))
+        assert config == snapshot
+
+    def test_post_fix_passes_lint(self) -> None:
+        from u1kit.fixers.c2_first_layer_bed_temp import C2FirstLayerBedTempFixer
+        from u1kit.rules.c2_first_layer_bed_temp import C2FirstLayerBedTemp
+
+        config: dict[str, Any] = {
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp_initial_layer": ["50", "60"],
+            "textured_plate_temp_initial_layer": ["70", "75"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        }
+        C2FirstLayerBedTempFixer().apply(config, {}, Context(config=config))
+        results = C2FirstLayerBedTemp().check(Context(config=config))
+        assert len(results) == 0

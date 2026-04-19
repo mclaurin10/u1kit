@@ -11,6 +11,8 @@ from u1kit.rules.b3_bbl_fields import B3BblFields
 from u1kit.rules.b4_flexible_speed_caps import B4FlexibleSpeedCaps
 from u1kit.rules.b5_flexible_support import B5FlexibleSupport
 from u1kit.rules.base import Context, Severity
+from u1kit.rules.c1_bed_temp_conflict import C1BedTempConflict
+from u1kit.rules.c2_first_layer_bed_temp import C2FirstLayerBedTemp
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
 
 
@@ -387,3 +389,152 @@ class TestB5FlexibleSupport:
         assert len(results) == 1
         assert results[0].severity == Severity.FAIL
         assert results[0].fixer_id == "b5"
+
+
+class TestC1BedTempConflict:
+    """C1: bed-temperature conflict across used filaments."""
+
+    def test_no_bed_temp_fields_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C1BedTempConflict().check(ctx)
+        assert len(results) == 0
+
+    def test_uniform_bed_temp_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "50"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C1BedTempConflict().check(ctx)
+        assert len(results) == 0
+
+    def test_conflicting_hot_plate_temp_fails(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "60"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C1BedTempConflict().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+        assert results[0].fixer_id == "c1"
+        assert "hot_plate_temp" in results[0].message
+
+    def test_unused_slots_ignored(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "60"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "1",
+        })
+        results = C1BedTempConflict().check(ctx)
+        assert len(results) == 0
+
+    def test_multiple_plate_fields_summarized(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "60"],
+            "textured_plate_temp": ["55", "65"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C1BedTempConflict().check(ctx)
+        assert len(results) == 1
+        assert "hot_plate_temp" in results[0].message
+        assert "textured_plate_temp" in results[0].message
+
+    def test_single_used_slot_never_conflicts(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp": ["50", "60"],
+            "wall_filament": "1",
+        })
+        results = C1BedTempConflict().check(ctx)
+        assert len(results) == 0
+
+
+class TestC2FirstLayerBedTemp:
+    """C2: first-layer bed-temperature conflict + textured-PEI 65C cap."""
+
+    def test_no_first_layer_fields_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C2FirstLayerBedTemp().check(ctx)
+        assert len(results) == 0
+
+    def test_uniform_first_layer_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp_initial_layer": ["50", "50"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C2FirstLayerBedTemp().check(ctx)
+        assert len(results) == 0
+
+    def test_conflicting_first_layer_fails(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp_initial_layer": ["50", "60"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C2FirstLayerBedTemp().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+        assert results[0].fixer_id == "c2"
+
+    def test_textured_over_65_cap_fails(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "textured_plate_temp_initial_layer": ["70", "70"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C2FirstLayerBedTemp().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.FAIL
+        assert results[0].fixer_id == "c2"
+
+    def test_textured_at_65_passes(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "textured_plate_temp_initial_layer": ["65", "65"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C2FirstLayerBedTemp().check(ctx)
+        assert len(results) == 0
+
+    def test_hot_plate_initial_over_65_is_not_capped(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp_initial_layer": ["70", "70"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "2",
+        })
+        results = C2FirstLayerBedTemp().check(ctx)
+        assert len(results) == 0
+
+    def test_empty_config_passes(self) -> None:
+        results = C2FirstLayerBedTemp().check(Context(config={}))
+        assert len(results) == 0
+
+    def test_unused_slots_ignored(self) -> None:
+        ctx = Context(config={
+            "filament_colour": ["#000", "#111"],
+            "hot_plate_temp_initial_layer": ["50", "70"],
+            "wall_filament": "1",
+            "sparse_infill_filament": "1",
+        })
+        results = C2FirstLayerBedTemp().check(ctx)
+        assert len(results) == 0
