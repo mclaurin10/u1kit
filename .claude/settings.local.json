@@ -7,7 +7,16 @@
       "Bash(python -m mypy --strict u1kit/)",
       "Bash(python -m ruff check u1kit/ tests/)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(python -m pytest --tb=short)",
+      "Bash(python -m pytest tests/test_mixed_blends.py tests/test_rules.py::TestD2ZHopMagnitude tests/test_rules.py::TestD3AlternationCost tests/test_fixers.py::TestD2Fixer)",
+      "Bash(python -m pytest)",
+      "Bash(python -m u1kit lint tests/fixtures/real/u1_native.3mf --json)",
+      "Bash(python -c \"from u1kit.cli import main\")",
+      "Bash(python -c \"from u1kit.cli import main; main\\(\\)\" lint tests/fixtures/real/u1_native.3mf --json)",
+      "Bash(python -m pytest tests/test_e2e.py -v)",
+      "Bash(python -m pytest tests/test_cli.py -v)",
+      "Bash(python -c ' *)"
     ]
   }
 }
