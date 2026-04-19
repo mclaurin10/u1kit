@@ -18,6 +18,7 @@ from u1kit.rules.c4_fan_speed_range import C4FanSpeedRange
 from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
 from u1kit.rules.d2_z_hop_magnitude import D2ZHopMagnitude
 from u1kit.rules.d3_alternation_cost import D3AlternationCost
+from u1kit.rules.e1_thin_feature import E1ThinFeature
 
 
 class TestA1SourceSlicer:
@@ -798,3 +799,98 @@ class TestD3AlternationCost:
         results = D3AlternationCost().check(ctx)
         assert len(results) == 1
         assert "2" in results[0].message
+
+
+class TestE1ThinFeature:
+    """E1: warn when any object's thinnest XY < 3x outer_wall_line_width."""
+
+    def test_no_geometry_passes(self) -> None:
+        ctx = Context(config={"outer_wall_line_width": "0.4"})
+        assert E1ThinFeature().check(ctx) == []
+
+    def test_missing_line_width_passes(self) -> None:
+        from u1kit.geometry import ObjectBounds
+
+        ctx = Context(
+            config={},
+            geometry_bounds=[
+                ObjectBounds(
+                    id="1",
+                    min_x=0.0, min_y=0.0, min_z=0.0,
+                    max_x=1.0, max_y=1.0, max_z=1.0,
+                ),
+            ],
+        )
+        assert E1ThinFeature().check(ctx) == []
+
+    def test_thick_object_passes(self) -> None:
+        from u1kit.geometry import ObjectBounds
+
+        ctx = Context(
+            config={"outer_wall_line_width": "0.4"},
+            geometry_bounds=[
+                ObjectBounds(
+                    id="1",
+                    min_x=0.0, min_y=0.0, min_z=0.0,
+                    max_x=100.0, max_y=100.0, max_z=50.0,
+                ),
+            ],
+        )
+        assert E1ThinFeature().check(ctx) == []
+
+    def test_thin_object_warns(self) -> None:
+        from u1kit.geometry import ObjectBounds
+
+        # thinnest_xy = 1.0, line_width = 0.4 → ratio 2.5 < 3 → WARN
+        ctx = Context(
+            config={"outer_wall_line_width": "0.4"},
+            geometry_bounds=[
+                ObjectBounds(
+                    id="7",
+                    min_x=0.0, min_y=0.0, min_z=0.0,
+                    max_x=100.0, max_y=1.0, max_z=50.0,
+                ),
+            ],
+        )
+        results = E1ThinFeature().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.WARN
+        assert results[0].fixer_id is None
+        assert "7" in results[0].message
+
+    def test_ratio_of_three_is_boundary_pass(self) -> None:
+        from u1kit.geometry import ObjectBounds
+
+        # thinnest_xy = 1.5, line_width = 0.5 → ratio 3.0 → not < 3 → pass
+        ctx = Context(
+            config={"outer_wall_line_width": "0.5"},
+            geometry_bounds=[
+                ObjectBounds(
+                    id="1",
+                    min_x=0.0, min_y=0.0, min_z=0.0,
+                    max_x=100.0, max_y=1.5, max_z=50.0,
+                ),
+            ],
+        )
+        assert E1ThinFeature().check(ctx) == []
+
+    def test_multiple_objects_flags_only_thin_ones(self) -> None:
+        from u1kit.geometry import ObjectBounds
+
+        ctx = Context(
+            config={"outer_wall_line_width": "0.4"},
+            geometry_bounds=[
+                ObjectBounds(
+                    id="thick", min_x=0.0, min_y=0.0, min_z=0.0,
+                    max_x=100.0, max_y=100.0, max_z=10.0,
+                ),
+                ObjectBounds(
+                    id="thin", min_x=0.0, min_y=0.0, min_z=0.0,
+                    max_x=100.0, max_y=0.5, max_z=10.0,
+                ),
+            ],
+        )
+        results = E1ThinFeature().check(ctx)
+        assert len(results) == 1
+        assert "thin" in results[0].message
+        assert "thick" not in results[0].message

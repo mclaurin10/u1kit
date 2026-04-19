@@ -15,6 +15,7 @@ from u1kit.archive import read_3mf, write_3mf
 from u1kit.config import emit_config, parse_config
 from u1kit.fixers import get_fixer_map
 from u1kit.fixers.base import Fixer, FixMode, Pipeline
+from u1kit.geometry import parse_archive_geometry
 from u1kit.interactive import FixAction, prompt_fix
 from u1kit.report import format_human, format_json
 from u1kit.rules import RULES, get_rule
@@ -169,6 +170,7 @@ def main() -> None:
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON")
 def lint(file: str, use_json: bool) -> None:
     """Lint a .3mf file and report issues."""
+    archive_bytes = Path(file).read_bytes()
     archive = read_3mf(file)
     config = parse_config(archive.config_bytes)
 
@@ -176,7 +178,11 @@ def lint(file: str, use_json: bool) -> None:
     for path, raw in archive.get_filament_configs().items():
         filament_configs[path] = parse_config(raw)
 
-    context = Context(config=config, filament_configs=filament_configs)
+    context = Context(
+        config=config,
+        filament_configs=filament_configs,
+        geometry_bounds=parse_archive_geometry(archive_bytes),
+    )
 
     results: list[Result] = []
     for rule_cls in RULES:
