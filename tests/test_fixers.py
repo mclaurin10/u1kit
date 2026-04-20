@@ -827,3 +827,84 @@ class TestD2Fixer:
         D2ZHopMagnitudeFixer().apply(config, {}, Context(config=config))
         results = D2ZHopMagnitude().check(Context(config=config))
         assert len(results) == 0
+
+
+class TestE3Fixer:
+    """E3 fixer: bump prime_tower_brim_width to 5 mm when e3_auto_bump opted-in."""
+
+    def _small_plate_bounds(self) -> list:
+        from u1kit.geometry import ObjectBounds
+
+        return [
+            ObjectBounds(
+                id="1",
+                min_x=0.0, min_y=0.0, min_z=0.0,
+                max_x=80.0, max_y=80.0, max_z=10.0,
+            ),
+        ]
+
+    def test_applies_when_enabled(self) -> None:
+        from u1kit.fixers.e3_prime_tower_brim import E3PrimeTowerBrimFixer
+
+        config: dict[str, Any] = {
+            "prime_tower_enable": "1",
+            "prime_tower_brim_width": "2.0",
+        }
+        ctx = Context(config=config, options={"e3_auto_bump": True})
+        E3PrimeTowerBrimFixer().apply(config, {}, ctx)
+        assert float(config["prime_tower_brim_width"]) == 5.0
+
+    def test_preserves_larger_brim(self) -> None:
+        from u1kit.fixers.e3_prime_tower_brim import E3PrimeTowerBrimFixer
+
+        config: dict[str, Any] = {
+            "prime_tower_enable": "1",
+            "prime_tower_brim_width": "7.5",
+        }
+        ctx = Context(config=config, options={"e3_auto_bump": True})
+        E3PrimeTowerBrimFixer().apply(config, {}, ctx)
+        assert float(config["prime_tower_brim_width"]) == 7.5
+
+    def test_aborts_when_not_requested(self) -> None:
+        import pytest
+
+        from u1kit.fixers.e3_prime_tower_brim import (
+            E3BrimBumpNotRequested,
+            E3PrimeTowerBrimFixer,
+        )
+
+        config: dict[str, Any] = {
+            "prime_tower_enable": "1",
+            "prime_tower_brim_width": "2.0",
+        }
+        ctx = Context(config=config)  # no e3_auto_bump
+        with pytest.raises(E3BrimBumpNotRequested):
+            E3PrimeTowerBrimFixer().apply(config, {}, ctx)
+        # Config unchanged after abort.
+        assert config["prime_tower_brim_width"] == "2.0"
+
+    def test_idempotent(self) -> None:
+        from u1kit.fixers.e3_prime_tower_brim import E3PrimeTowerBrimFixer
+        from u1kit.rules.e3_prime_tower_brim import E3PrimeTowerBrim
+
+        config: dict[str, Any] = {
+            "prime_tower_enable": "1",
+            "prime_tower_brim_width": "2.0",
+        }
+        ctx = Context(
+            config=config,
+            options={"e3_auto_bump": True},
+            geometry_bounds=self._small_plate_bounds(),
+        )
+        E3PrimeTowerBrimFixer().apply(config, {}, ctx)
+        snapshot = copy.deepcopy(config)
+        # Re-lint post-fix: rule should find nothing now.
+        post_ctx = Context(
+            config=config,
+            options={"e3_auto_bump": True},
+            geometry_bounds=self._small_plate_bounds(),
+        )
+        assert E3PrimeTowerBrim().check(post_ctx) == []
+        # Re-apply: config should not change a second time.
+        E3PrimeTowerBrimFixer().apply(config, {}, ctx)
+        assert config == snapshot

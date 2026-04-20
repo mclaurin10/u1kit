@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import zipfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 from click.testing import CliRunner
@@ -290,3 +291,62 @@ class TestUserPresetLoader:
 
         data = _load_preset("bambu-to-u1")
         assert data["name"] == "bambu-to-u1"
+
+
+class TestPresetOptions:
+    """Preset-level options flow through to Context.options (for E3 opt-in fixer)."""
+
+    def test_preset_options_reach_fixer(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from tests.conftest import make_3mf, make_model_xml
+
+        # User preset with options → rules: [E3], options: {e3_auto_bump: true}.
+        user_dir = tmp_path / "presets"
+        user_dir.mkdir()
+        (user_dir / "e3-bump.yaml").write_text(
+            "name: e3-bump\n"
+            "description: enable E3 brim bump for tests\n"
+            "rules: [E3]\n"
+            "options:\n"
+            "  e3_auto_bump: true\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("u1kit.cli._user_preset_dir", lambda: user_dir)
+
+        # Small-plate fixture: 80x80 mm bounding box, prime tower enabled, thin brim.
+        model_xml = make_model_xml([
+            ("1", [
+                (0.0, 0.0, 0.0),
+                (80.0, 0.0, 0.0),
+                (80.0, 80.0, 0.0),
+                (0.0, 80.0, 10.0),
+            ]),
+        ])
+        config: dict[str, Any] = {
+            "printer_settings_id": "Snapmaker U1",
+            "printer_model": "Snapmaker U1",
+            "prime_tower_enable": "1",
+            "prime_tower_brim_width": "2.0",
+        }
+        archive_bytes = make_3mf(
+            config=config,
+            extra_entries={"3D/3dmodel.model": model_xml},
+        )
+        input_path = tmp_path / "input.3mf"
+        output_path = tmp_path / "output.3mf"
+        input_path.write_bytes(archive_bytes)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["fix", str(input_path), "--preset", "e3-bump", "--out", str(output_path)],
+        )
+        assert result.exit_code == 0, f"fix failed:\n{result.output}"
+
+        # Re-parse the output and verify the brim was bumped to 5.0.
+        with zipfile.ZipFile(output_path) as zf:
+            updated_config = json.loads(
+                zf.read("Metadata/project_settings.config").decode("utf-8")
+            )
+        assert float(updated_config["prime_tower_brim_width"]) == 5.0

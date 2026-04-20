@@ -20,6 +20,7 @@ from u1kit.rules.d2_z_hop_magnitude import D2ZHopMagnitude
 from u1kit.rules.d3_alternation_cost import D3AlternationCost
 from u1kit.rules.e1_thin_feature import E1ThinFeature
 from u1kit.rules.e2_layer_time_clamp import E2LayerTimeClamp
+from u1kit.rules.e3_prime_tower_brim import E3PrimeTowerBrim
 
 __all__ = [
     "RULES",
@@ -49,6 +50,7 @@ RULES: list[type[Rule]] = [
     D1MixedHeightBounds,
     E1ThinFeature,
     E2LayerTimeClamp,
+    E3PrimeTowerBrim,
 ]
 
 _RULE_MAP: dict[str, type[Rule]] = {cls().id: cls for cls in RULES}

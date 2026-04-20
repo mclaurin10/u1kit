@@ -20,6 +20,7 @@ from u1kit.rules.d2_z_hop_magnitude import D2ZHopMagnitude
 from u1kit.rules.d3_alternation_cost import D3AlternationCost
 from u1kit.rules.e1_thin_feature import E1ThinFeature
 from u1kit.rules.e2_layer_time_clamp import E2LayerTimeClamp
+from u1kit.rules.e3_prime_tower_brim import E3PrimeTowerBrim
 
 
 class TestA1SourceSlicer:
@@ -993,3 +994,96 @@ class TestE2LayerTimeClamp:
         )
         # min_vmax=8 → min_layer_time=40 s; max slow_down=20 s → 40 ≥ 20 → empty.
         assert E2LayerTimeClamp().check(ctx) == []
+
+
+class TestE3PrimeTowerBrim:
+    """E3: warn when plate is small AND brim is thin AND prime tower is in use."""
+
+    def _bounds(self, width: float, height: float) -> list:
+        from u1kit.geometry import ObjectBounds
+
+        return [
+            ObjectBounds(
+                id="1",
+                min_x=0.0, min_y=0.0, min_z=0.0,
+                max_x=width, max_y=height, max_z=10.0,
+            ),
+        ]
+
+    def test_fires_on_small_plate(self) -> None:
+        ctx = Context(
+            config={
+                "prime_tower_enable": "1",
+                "prime_tower_brim_width": "2.0",
+            },
+            geometry_bounds=self._bounds(80.0, 80.0),
+        )
+        results = E3PrimeTowerBrim().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.WARN
+        assert results[0].fixer_id == "e3"
+        assert "80" in results[0].message
+
+    def test_no_op_on_large_plate(self) -> None:
+        ctx = Context(
+            config={
+                "prime_tower_enable": "1",
+                "prime_tower_brim_width": "2.0",
+            },
+            geometry_bounds=self._bounds(200.0, 200.0),
+        )
+        assert E3PrimeTowerBrim().check(ctx) == []
+
+    def test_boundary_at_120mm_is_no_op(self) -> None:
+        # min_dim == 120 is NOT below threshold → no finding.
+        ctx = Context(
+            config={
+                "prime_tower_enable": "1",
+                "prime_tower_brim_width": "2.0",
+            },
+            geometry_bounds=self._bounds(120.0, 150.0),
+        )
+        assert E3PrimeTowerBrim().check(ctx) == []
+
+    def test_no_op_when_brim_already_sufficient(self) -> None:
+        ctx = Context(
+            config={
+                "prime_tower_enable": "1",
+                "prime_tower_brim_width": "5.0",
+            },
+            geometry_bounds=self._bounds(80.0, 80.0),
+        )
+        assert E3PrimeTowerBrim().check(ctx) == []
+
+    def test_no_op_when_no_prime_tower(self) -> None:
+        ctx = Context(
+            config={
+                "prime_tower_enable": "0",
+                "prime_tower_brim_width": "2.0",
+            },
+            geometry_bounds=self._bounds(80.0, 80.0),
+        )
+        assert E3PrimeTowerBrim().check(ctx) == []
+
+    def test_fires_on_wipe_tower_filament_truthy(self) -> None:
+        # Prime tower "in use" can also be inferred from wipe_tower_filament being set.
+        ctx = Context(
+            config={
+                "wipe_tower_filament": "2",
+                "prime_tower_brim_width": "1.0",
+            },
+            geometry_bounds=self._bounds(80.0, 80.0),
+        )
+        results = E3PrimeTowerBrim().check(ctx)
+        assert len(results) == 1
+        assert results[0].fixer_id == "e3"
+
+    def test_no_op_when_geometry_missing(self) -> None:
+        ctx = Context(
+            config={
+                "prime_tower_enable": "1",
+                "prime_tower_brim_width": "2.0",
+            },
+            geometry_bounds=None,
+        )
+        assert E3PrimeTowerBrim().check(ctx) == []

@@ -240,6 +240,7 @@ def fix(
     if mode == FixMode.INTERACTIVE:
         interactive_callback = _interactive_prompt
 
+    archive_bytes = Path(file).read_bytes()
     archive = read_3mf(file)
     config = parse_config(archive.config_bytes)
 
@@ -247,7 +248,9 @@ def fix(
     for path, raw in archive.get_filament_configs().items():
         filament_configs[path] = parse_config(raw)
 
-    options: dict[str, Any] = {"uniform_height": uniform_height}
+    preset_options: dict[str, Any] = preset_data.get("options") or {}
+    options: dict[str, Any] = dict(preset_options)
+    options["uniform_height"] = uniform_height
     if mode == FixMode.INTERACTIVE:
         options["b1_interactive"] = True
 
@@ -259,7 +262,10 @@ def fix(
     )
 
     results, fixer_results, updated_config, updated_filaments = pipeline.run(
-        config, filament_configs, options
+        config,
+        filament_configs,
+        options,
+        geometry_bounds=parse_archive_geometry(archive_bytes),
     )
 
     if use_json:

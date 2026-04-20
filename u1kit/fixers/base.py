@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from u1kit.geometry import ObjectBounds
 from u1kit.rules.base import Context, Result, Rule
 
 
@@ -84,6 +85,7 @@ class Pipeline:
         config: dict[str, Any],
         filament_configs: dict[str, dict[str, Any]],
         options: dict[str, Any] | None = None,
+        geometry_bounds: list[ObjectBounds] | None = None,
     ) -> tuple[list[Result], list[FixerResult], dict[str, Any], dict[str, dict[str, Any]]]:
         """Run the full pipeline: lint then fix.
 
@@ -94,6 +96,7 @@ class Pipeline:
             config=config,
             filament_configs=filament_configs,
             options=options or {},
+            geometry_bounds=geometry_bounds,
         )
 
         # Run rules
