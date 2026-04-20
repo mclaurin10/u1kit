@@ -187,3 +187,46 @@ must update this section in the same commit.
 whose 5th field (index 4) is the ratio percent. Exact semantics of positions 2, 3,
 5–11 are deferred: Phase 2 parses only the fields we use (filament indices, ratio)
 and preserves the rest as opaque strings so round-trip fidelity is maintained.
+
+## Phase 2 wrap-up resolutions (2026-04-19)
+
+Five resolutions locked before executing W1–W4 of the Phase 2 wrap-up. They
+extend items 13–16 above with implementation-level specifics and introduce
+preset-level options routing needed by E3's opt-in fixer.
+
+21. **E2 estimated-layer-time formula (extends item 13)** —
+    `min_layer_time = plate_footprint_mm² × layer_height × min(filament_max_volumetric_speed[used]) / 60`.
+    If `min_layer_time < max(slow_down_layer_time[used])` for any used filament,
+    emit one `info`-severity result. Plate footprint comes from
+    `u1kit.geometry.total_plate_footprint(context.geometry_bounds)`; the used-set
+    comes from `u1kit.filaments.get_used_filament_indices(config)`. No fixer —
+    the user must decide whether to raise volumetric speed, lower the cooling
+    minimum, or accept the clamp.
+22. **E3 opt-in fixer gate (extends items 14, 15)** — E3's rule fires at `warn`
+    severity when plate footprint min-dimension < 120 mm AND
+    `prime_tower_brim_width < 5` mm AND a prime tower is in use (`prime_tower_enable`
+    truthy OR `wipe_tower_filament` set). The fixer bumps
+    `prime_tower_brim_width` to `max(current, 5)` mm **only when
+    `context.options["e3_auto_bump"] is True`**; otherwise it raises
+    `E3BrimBumpNotRequested(FixerAbort)` and the pipeline records a skipped
+    FixerResult. Rationale: bumping brim costs filament and print time; keep
+    default behavior conservative.
+23. **F1 lineage finding shape (extends item 16)** — For each index in
+    `get_used_filament_indices(config)`, read `filament_settings_id[i]`. If the
+    value is missing, empty, or its trailing ` @<suffix>` (matched by
+    `r" @([A-Za-z0-9 ]+)$"`) is not exactly `Snapmaker U1`, emit one
+    `info`-severity result per offending slot naming the 1-based slot index and
+    the filament type. No fixer — the manual fix is rebuild-from-base or
+    SD-card workflow, both out of scope for u1kit.
+24. **Preset YAML schema (formalized)** — Every preset file has top-level
+    `name` (string), `description` (string), and `rules` (list of uppercase rule
+    IDs). An optional top-level `options` dict may declare fixer-tunable flags
+    (see item 25). All four new presets (`fs-uniform`, `peba-safe`,
+    `plus-peba-multi`, `makerworld-import`) follow this shape exactly.
+25. **Preset options routing (new)** — `u1kit.cli._load_preset()` returns both
+    `rules` and `options`; the `fix` command merges `preset_options` into the
+    `Context.options` dict before constructing the pipeline. CLI flags take
+    precedence over preset-declared options (CLI values overwrite preset values
+    in the merged dict). This is the plumbing required to gate E3's fixer
+    behind `e3_auto_bump: true` in `peba-safe` / `plus-peba-multi` presets.
+    Built inline with W2 so E3's tests have something to exercise.
