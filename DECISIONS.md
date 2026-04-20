@@ -265,3 +265,66 @@ preset-level options routing needed by E3's opt-in fixer.
     native files differ from this one). Interpreted instead as: running
     `u1kit fix --preset bambu-to-u1` on `u1_native.3mf` produces output
     that re-lints clean (0 fail, 0 warn). Verified.
+
+## Phase 3 resolutions (2026-04-19)
+
+Ten decisions locked before writing any Tauri/React code. The Phase 3
+plan in `phase-three-plan.md` enumerates these; each subsequent G-task
+assumes these hold.
+
+29. **Sidecar packager: PyInstaller** — one-file, target-triple-aware
+    output (`u1kit-x86_64-pc-windows-msvc.exe`, etc.), emitted to
+    `dist/sidecar/` and copied into `gui/src-tauri/resources/sidecar/`
+    at Tauri build time. Alternatives considered: embedded CPython
+    (heavier, harder to cross-build), `pex`/`shiv` (Python-only hosts).
+    PyInstaller supports all three MVP OSes and produces a single file.
+30. **Tauri version: 2** (not 1). Tauri 2 is GA as of Oct 2024 and is
+    the default for new projects; mobile-ready plugin system, stable
+    config format, Windows/macOS/Linux parity. MSI/DMG/AppImage bundles.
+31. **Diff rendering: server-side (CLI-emitted strings)** — the CLI
+    already emits `diff_preview` via `difflib.unified_diff`. The
+    frontend renders these as preformatted monospace blocks. No
+    client-side diff library in MVP; revisit if we need inline
+    highlighting.
+32. **Rule doc source: bundled markdown** — split from
+    `u1kit — Rule & Fixer Spec (v0 draft).md` into per-rule
+    `gui/src/ruledocs/<rule_id_lower>.md` files at build time (split
+    script runs once, output is committed). Rendered with
+    `react-markdown` inside a shadcn `Sheet`. No network fetch in MVP.
+33. **State management: useReducer + local useState** — single top-level
+    `session` reducer (`Idle | FileLoaded | Linting | ShowingFindings |
+    Fixing | Done | Error`) plus local useState where appropriate. No
+    Redux/Zustand in MVP; upgrade if the reducer grows past ~10 actions.
+34. **Sidecar version check at build time** — `u1kit --version` output
+    must equal `gui/package.json`'s `version` field during Tauri build.
+    Build fails (exit 1) on mismatch. Enforces lockstep releases.
+35. **Test boundary** — Vitest + React Testing Library for reducers and
+    pure components; Playwright for one end-to-end happy path only
+    (drop → lint → fix → save). No component-level snapshot tests. No
+    Cypress.
+36. **Signing / notarization / auto-update: deferred to Phase 4** — MVP
+    ships unsigned MSI (Windows), unsigned DMG (macOS with right-click
+    Open workaround documented in `docs/install.md`), and an AppImage
+    (Linux). No Tauri updater plugin in MVP. Hit signing/notarization
+    in Phase 4 before any wider distribution.
+37. **Minimum OS versions** — Windows 10 1809+, macOS 12+, Linux glibc
+    2.31+ (Tauri 2 defaults).
+38. **Preset picker source** — `u1kit presets list --json` at GUI
+    startup returns `{source: "bundled" | "user", …}` per preset
+    (source string is `"bundled"` in the actual CLI, not `"builtin"`;
+    this is the public JSON contract and the GUI must mirror it
+    verbatim). The GUI merges both lists into one Select, tagged by
+    source, sorted with bundled first then user (user presets appear
+    at the bottom grouped under a divider).
+
+**Contract drifts to address in G1:** (1) `presets list --json` today
+emits a bare list `[...]`; Phase 3 plan expects the wrapped shape
+`{"schema_version": "1", "presets": [...]}` matching `lint --json` and
+`fix --json`. G1 adds the wrapper. (2) `fix --json` today emits
+`{"results": [...], "fixers": [...]}`; Phase 3 plan expects
+`{"schema_version": "1", "file": ..., "preset": ..., "applied": [...],
+"skipped": [...], "output_path": ...}`. G1 reconciles — either bump the
+CLI contract (preferred; additive) or relax the plan. Decision in G1:
+extend the CLI to emit the fuller shape additively while keeping the
+legacy keys for one release, then drop them. Documented as DECISION
+item 39 once G1 lands.
