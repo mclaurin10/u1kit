@@ -1,0 +1,96 @@
+name: release
+
+# Tag-driven release: pushing a tag matching v*.*.* (e.g. v0.1.0,
+# v0.2.0-rc1) kicks off the matrix. Unsigned artifacts; Phase 4 will
+# add code signing and notarization (DECISIONS item 36).
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            sidecar_suffix: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            sidecar_suffix: ".exe"
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            sidecar_suffix: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Python side: build the sidecar binary first ----------------
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install u1kit + PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[release]"
+      - name: Build sidecar
+        run: python scripts/build_sidecar.py
+      - name: Stage sidecar into gui/src-tauri/resources/sidecar/
+        shell: bash
+        run: |
+          mkdir -p gui/src-tauri/resources/sidecar
+          cp dist/sidecar/${{ matrix.target }}/u1kit${{ matrix.sidecar_suffix }} \
+             gui/src-tauri/resources/sidecar/u1kit${{ matrix.sidecar_suffix }}
+      # --- Version lockstep check (DECISIONS 34) ----------------------
+      - name: Verify sidecar version matches gui/package.json
+        shell: bash
+        run: |
+          sidecar_version=$(gui/src-tauri/resources/sidecar/u1kit${{ matrix.sidecar_suffix }} --version)
+          pkg_version=$(node -p "require('./gui/package.json').version")
+          if [ "$sidecar_version" != "$pkg_version" ]; then
+            echo "Version mismatch: sidecar=$sidecar_version pkg=$pkg_version" >&2
+            exit 1
+          fi
+
+      # --- GUI side ---------------------------------------------------
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: gui/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gui/src-tauri -> target
+
+      - name: Install Linux deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: Install frontend deps
+        working-directory: gui
+        run: pnpm install --frozen-lockfile
+      - name: Build release bundle
+        working-directory: gui
+        run: pnpm tauri build
+
+      # Artifacts live under src-tauri/target/release/bundle/{msi,dmg,appimage,deb}/.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: u1kit-${{ matrix.target }}
+          path: |
+            gui/src-tauri/target/release/bundle/msi/*.msi
+            gui/src-tauri/target/release/bundle/dmg/*.dmg
+            gui/src-tauri/target/release/bundle/appimage/*.AppImage
+            gui/src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: ignore

@@ -96,7 +96,8 @@ commit policy, module layout — are documented in `CLAUDE.md`.
 A Tauri + React desktop app lives in [`gui/`](gui/) that wraps this CLI as a
 PyInstaller sidecar. The backend contract is the CLI's JSON output (stable
 `schema_version: "1"`). See [`phase-three-plan.md`](phase-three-plan.md) for
-the phased task breakdown.
+the phased task breakdown, or [`docs/install.md`](docs/install.md) for
+end-user install instructions (Windows MSI, macOS DMG, Linux AppImage/deb).
 
 ```bash
 # Prereqs: Node 22+, pnpm 10+, Rust 1.75+ (with rustup target for your host)
