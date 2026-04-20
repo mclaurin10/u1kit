@@ -132,7 +132,7 @@ empirically against `tests/fixtures/real/u1_native.3mf` and must stay green.
 |---|---|
 | "What does rule X do?" | `u1kit — Rule & Fixer Spec (v0 draft).md` |
 | "Why did we pick value N for threshold Y?" | `DECISIONS.md` |
-| "What's the current roadmap?" | `phase-two.md` tasks, then `u1kit — Phased Development PRD draft 1.md` for beyond Phase 2 |
+| "What's the current roadmap?" | `phase-three-plan.md` Progress table for the most recent completed phase; `u1kit — Phased Development PRD draft 1.md` §"Phase 4" for what's next |
 | "How is `project_settings.config` shaped on U1 native?" | `DECISIONS.md` + the ground-truth table at the top of `phase-two.md` |
 | "What's the JSON schema for `--json` output?" | `u1kit/report.py` — `schema_version: "1"` |
 | "How does the interactive B1 merge work?" | `u1kit/interactive.py`, `u1kit/fixers/b1_filament_count.py`, and DECISIONS.md items 1–3 |
@@ -142,5 +142,13 @@ empirically against `tests/fixtures/real/u1_native.3mf` and must stay green.
 Phase 1 shipped. Phase 2 shipped — all 17 catalog rules (A1, A2, A3, B1–B5,
 C1–C4, D1–D3, E1–E3, F1) and 13 fixers, plus five starter presets
 (`bambu-to-u1`, `fs-uniform`, `peba-safe`, `plus-peba-multi`,
-`makerworld-import`). Next: Phase 3 — Tauri + React desktop GUI wrapping
-the CLI as a PyInstaller sidecar.
+`makerworld-import`). Phase 3 shipped — Tauri 2 + React + Vite + Tailwind +
+shadcn desktop GUI in `gui/` wrapping the CLI as a PyInstaller sidecar, with
+the happy path (drop → lint → pick preset → apply → save-as) green end-to-end
+and unsigned install artifacts (MSI/DMG/AppImage/deb) produced by
+`.github/workflows/release.yml`. See `phase-three-plan.md` for the executed
+task breakdown and `docs/install.md` for install instructions.
+
+Next: Phase 4 — signing and notarization, auto-update, batch/watch CLI modes,
+and wider distribution (Homebrew / winget / AUR). Not scoped yet; see
+`u1kit — Phased Development PRD draft 1.md` §"Phase 4" for the rough outline.

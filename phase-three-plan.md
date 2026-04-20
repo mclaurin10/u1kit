@@ -106,25 +106,40 @@ G-viii. **Keyboard** — `Esc` clears selection; `Enter` triggers "Apply fixes" 
 
 ## Progress
 
-| Task | Scope | Status |
-|---|---|---|
-| W0. Lock Phase 2 wrap-up resolutions in DECISIONS.md | docs | ⏳ not started |
-| W1. E2 — estimated layer time clamp | rule | ⏳ |
-| W2. E3 — prime-tower brim bump | rule + fixer | ⏳ |
-| W3. F1 — Print Preprocessing lineage | rule | ⏳ |
-| W4. Ship remaining presets + Phase 2 exit verification | presets + e2e | ⏳ |
-| G0. Lock Phase 3 resolutions in DECISIONS.md | docs | ⏳ |
-| G1. CLI sidecar readiness | CLI | ⏳ |
-| G2. Tauri project scaffold | gui | ⏳ |
-| G3. Shared TypeScript types for CLI JSON contracts | gui | ⏳ |
-| G4. File drop-zone + file picker | gui | ⏳ |
-| G5. Lint view: findings grouped by severity | gui | ⏳ |
-| G6. Per-finding detail + rule doc sheet | gui | ⏳ |
-| G7. Preset picker + apply-fix workflow | gui | ⏳ |
-| G8. Save-as flow | gui | ⏳ |
-| G9. Error and edge handling | gui | ⏳ |
-| G10. Packaging per OS + CI matrix | release | ⏳ |
-| G11. End-to-end UX verification + Phase 3 exit | e2e | ⏳ |
+Phase 2 wrap-up and Phase 3 are both complete as of 2026-04-19. Every task
+below landed in a single commit with the three gates green; see
+`git log --oneline` for the full mapping.
+
+| Task | Scope | Status | Commit |
+|---|---|---|---|
+| W0. Lock Phase 2 wrap-up resolutions in DECISIONS.md | docs | ✅ done | `6af0482` |
+| W1. E2 — estimated layer time clamp | rule | ✅ done | `3a7ea80` |
+| W2. E3 — prime-tower brim bump | rule + fixer | ✅ done | `8e05f33` |
+| W3. F1 — Print Preprocessing lineage | rule | ✅ done | `903eb65` |
+| W4. Ship remaining presets + Phase 2 exit verification | presets + e2e | ✅ done | `d1384f2` |
+| G0. Lock Phase 3 resolutions in DECISIONS.md | docs | ✅ done | `5df4343` |
+| G1. CLI sidecar readiness | CLI | ✅ done | `1da7b08` |
+| G2. Tauri project scaffold | gui | ✅ done | `a048cdf` |
+| G3. Shared TypeScript types for CLI JSON contracts | gui | ✅ done | `59be6a9` |
+| G4. File drop-zone + file picker | gui | ✅ done | `259ed99` |
+| G5. Lint view: findings grouped by severity | gui | ✅ done | `cc14937` |
+| G6. Per-finding detail + rule doc sheet | gui | ✅ done | `40bc23f` |
+| G7. Preset picker + apply-fix workflow | gui | ✅ done | `8582ac2` |
+| G8. Save-as flow | gui | ✅ done | `09fafbf` |
+| G9. Error and edge handling | gui | ✅ done | `46e6f4e` |
+| G10. Packaging per OS + CI matrix | release | ✅ done | `3968d22` |
+| G11. End-to-end UX verification + Phase 3 exit | e2e | ✅ done | `c36e359` |
+
+**Deviations from the plan** (captured in DECISIONS.md items 39–41):
+`lint` / `fix --json` kept the existing `results` / `fixers` / `summary`
+shape rather than the plan's aspirational reshape (only `presets list
+--json` gained the `{schema_version, presets}` wrapper in G1). Playwright
+E2E was replaced by a Vitest integration test mocking the Tauri shell /
+dialog / invoke APIs — Tauri+Playwright on Windows is a known tarpit and
+the plan itself scoped Playwright to Linux CI only. shadcn primitives
+were added on-demand per task (Button+cn in G2, Accordion+Badge in G5,
+Sheet+Checkbox in G6, Select in G7, an in-house Toast in G9) instead of
+bulk-scaffolded in G2.
 
 ---
 

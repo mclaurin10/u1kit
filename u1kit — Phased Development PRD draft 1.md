@@ -43,9 +43,11 @@ Homebrew tap, winget manifest, AUR PKGBUILD.
 Optional: watch-mode (u1kit watch ~/Downloads --preset makerworld-import) for auto-processing Makerworld downloads.
 
 
-Open questions to resolve before Phase 1 kickoff
+Open questions to resolve before Phase 1 kickoff (all resolved — see DECISIONS.md)
 
-Archive fidelity — does Snapmaker Orca care about .3mf ZIP compression level / entry ordering / timestamps? If yes, round-tripping needs to preserve them. Worth a 1-hour spike before writing archive.
-A3 toolchange sequence — the "U1-equivalent toolchange sequence" needs to be pinned down as a literal G-code template. Pull from a known-good Snapmaker Orca export and check it in as u1kit/templates/u1_toolchange.gcode.
-B1 interactive merge — CLI-only for Phase 2, or defer the merge UI to Phase 3 where shadcn makes it pleasant? Recommend: CLI shows the proposed merge table and asks y/n; real editing waits for GUI.
-Rule IDs as stable API — lock the A2/D1 IDs as the public identifier for presets and --only/--skip flags. Renaming later breaks user presets.
+Archive fidelity — Resolved. Non-config entries round-trip byte-identical (compression method, entry order, mtimes) against `tests/fixtures/real/u1_native.3mf`. See DECISIONS.md §"Archive fidelity" and `u1kit/archive.py`.
+A3 toolchange sequence — Resolved. Checked in as `u1kit/data/u1_toolchange.gcode`, extracted from a Snapmaker Orca export (template date 20251213). See DECISIONS.md §"A3 G-code template".
+B1 interactive merge — Resolved. CLI shipped a Click-based interactive merge-by-CIEDE2000-color-distance in Phase 2; the Phase 3 GUI now surfaces the same merge plan via the `diff_preview` string the CLI already emits. See DECISIONS.md items 1–3 and `u1kit/fixers/b1_filament_count.py`.
+Rule IDs as stable API — Resolved. Rule IDs are the public API; `CLAUDE.md` states "Never rename a rule ID." Fixer IDs = `rule_id.lower()`. Presets and the GUI both key off these strings.
+
+Phase status (as of 2026-04-19): Phases 1, 2, and 3 shipped. Phase 4 (sanitizer, batch, polish, signing, packaging, rule-authoring docs) is the next scoped chunk and is not yet planned.

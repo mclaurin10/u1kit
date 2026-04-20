@@ -1,5 +1,10 @@
 # u1kit Phase 2 Implementation Plan
 
+> **Status (2026-04-19):** Phase 2 shipped. All 17 Progress-table tasks
+> (T0–T16) landed with the three gates green. Phase 3 wrapped the CLI in a
+> Tauri 2 + React desktop GUI (see `phase-three-plan.md`). This file is
+> kept as-is for the historical task breakdown and commit mapping.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Ship every remaining v0 rule (B1 interactive, B4, B5, C1–C4, D2, D3, E1–E3, F1), the four starter presets (`peba-safe`, `plus-peba-multi`, `fs-uniform`, `makerworld-import`), a user-preset-directory loader, and a minimal interactive UX layer on top of the Phase 1 Rule/Fixer architecture.
