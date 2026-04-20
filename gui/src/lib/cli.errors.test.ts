@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   CliCrashedError,
@@ -7,7 +7,6 @@ import {
   CliSchemaMismatchError,
   CliTimeoutError,
   formatCliError,
-  runCli,
 } from "./cli";
 
 const mockExecute = vi.fn();

@@ -74,8 +74,17 @@ C4, D2, D3, E1, E2, E3, F1 with their fixers where applicable, and the five
 starter presets: `bambu-to-u1`, `fs-uniform`, `peba-safe`, `plus-peba-multi`,
 `makerworld-import`.
 
-**Next up:** Phase 3 — Tauri + React desktop GUI wrapping the CLI as a
-PyInstaller sidecar. See the project plan document in the repo root.
+**Phase 3:** complete. A Tauri 2 + React + Vite + Tailwind + shadcn
+desktop GUI lives in [`gui/`](gui/) wrapping the CLI as a PyInstaller
+sidecar. The happy path — drop a `.3mf`, see lint findings grouped by
+severity, pick a preset, apply fixes, save-as — works end-to-end.
+Install bundles (unsigned MSI / DMG / AppImage / deb) are produced
+by the [`release.yml`](.github/workflows/release.yml) workflow on
+tag push; see [`docs/install.md`](docs/install.md).
+
+**Next up:** Phase 4 — signing and notarization, auto-update,
+batch/watch CLI modes, and wider distribution (Homebrew / winget /
+AUR). Not scoped yet.
 
 ## Development
 

@@ -328,3 +328,37 @@ CLI contract (preferred; additive) or relax the plan. Decision in G1:
 extend the CLI to emit the fuller shape additively while keeping the
 legacy keys for one release, then drop them. Documented as DECISION
 item 39 once G1 lands.
+
+## Phase 3 implementation notes (2026-04-19)
+
+Three pieces of the phased-plan that changed during execution:
+
+39. **Lint/fix JSON shape kept as-is** (supersedes the G1-era drift
+    note above). The plan's proposed reshape (`findings` / `applied` /
+    `skipped`) was aspirational; the current CLI's shape
+    (`results` / `fixers` / `summary`) was already tested against by
+    329 Python tests and is the schema the GUI was built against.
+    The only wrapper fix shipped in G1 was `presets list --json`,
+    which now emits `{schema_version, presets}`. The TypeScript
+    `Finding`/`FixerOutcome` type names in `gui/src/types/cli.ts`
+    differ from `phase-three-plan.md`'s proposed names but mirror
+    the actual JSON 1:1 — that's the important property.
+40. **Playwright E2E deferred; replaced by a Vitest integration
+    test.** Tauri+Playwright on Windows is a known tarpit, and the
+    plan itself scoped Playwright to Linux CI only. Rather than
+    stand up a display-server-dependent runner for one test, G11
+    ships `gui/src/App.integration.test.tsx` that mocks every Tauri
+    API (shell Command, dialog, invoke) and walks the full
+    drop-→-lint-→-apply-→-save-as path plus a crash-recovery case.
+    Assertions are equivalent to the Playwright spec's; the test
+    runs in the normal Vitest suite, no extra CI job. If we
+    eventually want a true cross-process launch smoke, add a Linux-
+    only Playwright job in Phase 4 alongside signing/notarization.
+41. **Phase 3 shadcn primitives loaded on-demand.** The plan said to
+    `shadcn add` all 7 primitives in G2 (button, accordion, badge,
+    sheet, select, checkbox, toast). We shipped Button + cn helper
+    in G2 and added the rest as each task needed them (Accordion +
+    Badge in G5, Sheet + Checkbox in G6, Select in G7, custom
+    in-house Toast instead of the full Radix/Sonner toast). This
+    kept each commit focused on what it was actually wiring and
+    avoided ~400 lines of unused primitive boilerplate.
