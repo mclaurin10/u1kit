@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from importlib.resources import as_file, files
 from pathlib import Path
@@ -22,6 +23,22 @@ from u1kit.interactive import FixAction, prompt_fix
 from u1kit.report import format_human, format_json
 from u1kit.rules import RULES, get_rule
 from u1kit.rules.base import Context, Result, Rule, Severity
+
+
+def _cli_version() -> str:
+    """Return CLI version even when package metadata is unavailable.
+
+    Local source checkouts may execute the CLI without `pip install -e .`,
+    which means `importlib.metadata.version("u1kit")` raises
+    `PackageNotFoundError`. Fall back to the package's `__version__` value so
+    import-time Click option wiring never crashes.
+    """
+    try:
+        return _pkg_version("u1kit")
+    except PackageNotFoundError:
+        from u1kit import __version__
+
+        return __version__
 
 
 def _user_preset_dir() -> Path:
@@ -163,7 +180,7 @@ def _get_rules_for_preset(preset: dict[str, Any]) -> list[type[Rule]]:
 
 
 @click.group()
-@click.version_option(version=_pkg_version("u1kit"), message="%(version)s")
+@click.version_option(version=_cli_version(), message="%(version)s")
 def main() -> None:
     """u1kit — convert Bambu/Makerworld .3mf files for the Snapmaker U1."""
 

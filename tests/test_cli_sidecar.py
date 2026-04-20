@@ -14,12 +14,14 @@ driven programmatically.
 from __future__ import annotations
 
 import json
+from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
 from click.testing import CliRunner
 
 from tests.conftest import make_bambu_4color_3mf
+from u1kit import __version__
 from u1kit.cli import main
 
 
@@ -32,7 +34,10 @@ class TestVersionContract:
         assert result.exit_code == 0
         # --version prints "<version>\n" (configured via message="%(version)s").
         reported = result.output.strip()
-        expected = pkg_version("u1kit")
+        try:
+            expected = pkg_version("u1kit")
+        except PackageNotFoundError:
+            expected = __version__
         assert reported == expected, f"CLI reported {reported!r}, package is {expected!r}"
 
 
