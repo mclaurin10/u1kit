@@ -129,9 +129,9 @@ These resolutions are proposals. T2 locks them into DECISIONS.md; subsequent tas
 | T11. D2 + D3 (Z-hop cap + mixed-alternation info) | ✅ done |
 | T12. `u1kit/geometry.py` — 3D/3dmodel.model parser | ✅ done |
 | T13. E1 thin-feature warning | ✅ done |
-| T14. E2 + E3 (layer-time info + prime tower brim) | ⏳ not started |
-| T15. F1 Print Preprocessing lineage | ⏳ not started |
-| T16. Ship remaining presets + Phase 2 exit verification | ⏳ not started |
+| T14. E2 + E3 (layer-time info + prime tower brim) | ✅ done |
+| T15. F1 Print Preprocessing lineage | ✅ done |
+| T16. Ship remaining presets + Phase 2 exit verification | ✅ done |
 
 ---
 

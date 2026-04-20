@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from importlib.resources import as_file, files
 from pathlib import Path
@@ -176,7 +177,13 @@ def lint(file: str, use_json: bool) -> None:
 
     filament_configs: dict[str, dict[str, Any]] = {}
     for path, raw in archive.get_filament_configs().items():
-        filament_configs[path] = parse_config(raw)
+        try:
+            filament_configs[path] = parse_config(raw)
+        except json.JSONDecodeError:
+            # U1 native exports include XML *.config files (slice_info.config,
+            # model_settings.config) alongside JSON filament configs; skip
+            # non-JSON entries rather than crashing.
+            continue
 
     context = Context(
         config=config,
@@ -246,7 +253,13 @@ def fix(
 
     filament_configs: dict[str, dict[str, Any]] = {}
     for path, raw in archive.get_filament_configs().items():
-        filament_configs[path] = parse_config(raw)
+        try:
+            filament_configs[path] = parse_config(raw)
+        except json.JSONDecodeError:
+            # U1 native exports include XML *.config files (slice_info.config,
+            # model_settings.config) alongside JSON filament configs; skip
+            # non-JSON entries rather than crashing.
+            continue
 
     preset_options: dict[str, Any] = preset_data.get("options") or {}
     options: dict[str, Any] = dict(preset_options)

@@ -50,14 +50,17 @@ class Rule(ABC):
     @property @abstractmethod
     def id(self) -> str: ...             # e.g. "A2" — stable public identifier
     @property @abstractmethod
-    def severity(self) -> Severity: ...  # FAIL | WARN | INFO
-    def check(self, ctx: Context) -> Result | None: ...
+    def name(self) -> str: ...           # human-readable name
+    @abstractmethod
+    def check(self, context: Context) -> list[Result]: ...
+    # Severity is set on each Result, not on the Rule — a single rule may
+    # emit findings at different severities from the same check().
 
 # u1kit/fixers/base.py
 class Fixer(ABC):
     @property @abstractmethod
     def id(self) -> str: ...             # e.g. "a2" — matches rule_id.lower()
-    def apply(self, config, filament_configs, ctx) -> None: ...
+    def apply(self, config, filament_configs, context) -> None: ...
 ```
 
 - Rule IDs are the public API. Presets reference them; user-visible
@@ -136,7 +139,8 @@ empirically against `tests/fixtures/real/u1_native.3mf` and must stay green.
 
 ## Phase status (snapshot)
 
-Phase 1 shipped. Phase 2 Tasks 0–13 shipped — 16 of the 17 catalog rules are
-implemented (missing: E2, E3, F1) and 12 fixers. Still open for Phase 2: T14
-(E2 + E3), T15 (F1), T16 (ship the four remaining presets — `fs-uniform`,
-`peba-safe`, `plus-peba-multi`, `makerworld-import` — plus exit verification).
+Phase 1 shipped. Phase 2 shipped — all 17 catalog rules (A1, A2, A3, B1–B5,
+C1–C4, D1–D3, E1–E3, F1) and 13 fixers, plus five starter presets
+(`bambu-to-u1`, `fs-uniform`, `peba-safe`, `plus-peba-multi`,
+`makerworld-import`). Next: Phase 3 — Tauri + React desktop GUI wrapping
+the CLI as a PyInstaller sidecar.

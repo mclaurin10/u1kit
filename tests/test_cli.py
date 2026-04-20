@@ -200,6 +200,23 @@ class TestPresets:
         assert isinstance(data, list)
         assert any(p["name"] == "bambu-to-u1" for p in data)
 
+    def test_all_starter_presets_discoverable(self) -> None:
+        """All five starter presets must surface from presets list."""
+        expected = {
+            "bambu-to-u1",
+            "fs-uniform",
+            "peba-safe",
+            "plus-peba-multi",
+            "makerworld-import",
+        }
+        runner = CliRunner()
+        result = runner.invoke(main, ["presets", "list", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        names = {p["name"] for p in data}
+        missing = expected - names
+        assert not missing, f"Missing starter presets: {missing}"
+
 
 class TestUserPresetLoader:
     """User-defined presets from platformdirs user config dir."""

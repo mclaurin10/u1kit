@@ -1,0 +1,14 @@
+name: plus-peba-multi
+description: Flexible multi-material — peba-safe rules plus bed-temperature and fan-range reconciliation across used filaments
+rules:
+  - D1
+  - D2
+  - B4
+  - B5
+  - C3
+  - C1
+  - C2
+  - C4
+  - E3
+options:
+  e3_auto_bump: true

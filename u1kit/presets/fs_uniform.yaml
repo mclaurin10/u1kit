@@ -1,0 +1,4 @@
+name: fs-uniform
+description: Force Full Spectrum mixed-filament height bounds to a single uniform layer height
+rules:
+  - D1

@@ -1,0 +1,12 @@
+name: makerworld-import
+description: Convert a Makerworld/Bambu export for the U1 — profile swap, toolchange macros, filament-count merge, BBL fields stripped, flexible speed caps
+rules:
+  - A2
+  - A3
+  - B1
+  - B2
+  - B3
+  - D1
+  - C1
+  - C2
+  - B4

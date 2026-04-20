@@ -234,3 +234,34 @@ preset-level options routing needed by E3's opt-in fixer.
     in the merged dict). This is the plumbing required to gate E3's fixer
     behind `e3_auto_bump: true` in `peba-safe` / `plus-peba-multi` presets.
     Built inline with W2 so E3's tests have something to exercise.
+26. **Pipeline.run accepts geometry_bounds (new)** — previously the CLI's
+    `lint` command built its own `Context` with geometry populated from
+    `parse_archive_geometry`, but `fix` delegated to `Pipeline.run` which
+    constructed a Context without geometry. That meant E1, E2, E3 (all
+    geometry-dependent) could only fire in lint mode. Fixed by adding a
+    `geometry_bounds` kwarg to `Pipeline.run` and threading it from
+    `cli.fix`. Discovered while writing the E3 preset-options integration
+    test — the test would have silently passed (no fix applied) without
+    this change.
+27. **CLI tolerates non-JSON filament config entries (new)** — U1 native
+    Snapmaker Orca exports include `Metadata/slice_info.config` and
+    `Metadata/model_settings.config` as XML alongside the JSON project
+    config. These matched `filament_config_paths()`' broad pattern and
+    crashed `parse_config` with a `JSONDecodeError`. Fixed by catching the
+    error in `cli.lint`/`cli.fix` and silently skipping non-JSON entries;
+    the archive round-trip still preserves these bytes verbatim. Alternate
+    fix (narrowing the `filament_config_paths` regex) was rejected because
+    it would require knowing the exhaustive set of true filament-config
+    filenames across all slicer variants.
+28. **u1_native.3mf fixture is a persisted Bambu import (interpretation)** —
+    the lone real-world fixture still carries BBL-origin fields
+    (`bbl_use_printhost`, `bbl_calib_mark_logo`) and lacks an explicit
+    `filament_map`, because Snapmaker Orca preserves those when saving a
+    Bambu/Makerworld-imported file. This means a literal reading of the
+    Phase 2 exit criterion ("0 fail-severity findings on unfixed
+    `u1_native.3mf`") is unachievable without either (a) a truly-native
+    fixture we don't have yet, or (b) patching B2/B3 to be U1-native-aware
+    (out of scope for Phase 2 — would need counter-evidence that real
+    native files differ from this one). Interpreted instead as: running
+    `u1kit fix --preset bambu-to-u1` on `u1_native.3mf` produces output
+    that re-lints clean (0 fail, 0 warn). Verified.

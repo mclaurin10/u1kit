@@ -64,16 +64,18 @@ and mesh data byte-for-byte; stable JSON schema (`schema_version: "1"`); real
 Snapmaker U1 printer reference and toolchange G-code sourced from an Orca
 export.
 
-**Phase 2:** 13 of 16 tasks complete. Shipped since Phase 1: real-file archive
-round-trip verification, `u1kit/filaments.py` parallel-array accessor,
-`u1kit/color.py` CIEDE2000 distance, `u1kit/geometry.py` 3D model parser, the
-Click-based interactive UX with unified-diff preview, user preset loading from
-`platformdirs.user_config_path("u1kit") / "presets"`, and rules B1 (interactive
-merge), B4, B5, C1, C2, C3, C4, D2, D3, E1 with their fixers where applicable.
+**Phase 2:** complete. Shipped since Phase 1: real-file archive round-trip
+verification, `u1kit/filaments.py` parallel-array accessor, `u1kit/color.py`
+CIEDE2000 distance, `u1kit/geometry.py` 3D model parser, the Click-based
+interactive UX with unified-diff preview, user preset loading from
+`platformdirs.user_config_path("u1kit") / "presets"`, preset-level `options:`
+routing for opt-in fixers, rules B1 (interactive merge), B4, B5, C1, C2, C3,
+C4, D2, D3, E1, E2, E3, F1 with their fixers where applicable, and the five
+starter presets: `bambu-to-u1`, `fs-uniform`, `peba-safe`, `plus-peba-multi`,
+`makerworld-import`.
 
-**Still open for Phase 2:** rules E2, E3, F1 and the preset-shipping wrap-up
-(`fs-uniform`, `peba-safe`, `plus-peba-multi`, `makerworld-import` plus Phase 2
-exit verification).
+**Next up:** Phase 3 — Tauri + React desktop GUI wrapping the CLI as a
+PyInstaller sidecar. See the project plan document in the repo root.
 
 ## Development
 

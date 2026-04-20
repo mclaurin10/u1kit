@@ -1,0 +1,11 @@
+name: peba-safe
+description: Conservative settings for TPU/PEBA/TPE prints — flexible speed caps, rigid-support swap, cooling reconciled
+rules:
+  - D1
+  - D2
+  - B4
+  - B5
+  - C3
+  - E3
+options:
+  e3_auto_bump: true
