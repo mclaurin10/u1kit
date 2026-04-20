@@ -111,6 +111,30 @@ These resolutions are proposals. T2 locks them into DECISIONS.md; subsequent tas
 
 ---
 
+## Progress
+
+| Task | Status |
+|---|---|
+| T0. Commit Phase 2 spec docs | ✅ done |
+| T1. Real-file fixture harvest + archive fidelity verification | ✅ done |
+| T2. Lock Phase 2 open questions in DECISIONS.md | ✅ done |
+| T3. `u1kit/filaments.py` parallel-array accessor | ✅ done |
+| T4. Interactive UX module + unified-diff rendering | ✅ done |
+| T5. User preset directory loader | ✅ done |
+| T6. `u1kit/color.py` — CIEDE2000 distance | ✅ done |
+| T7. B1 interactive filament-merge fixer | ✅ done |
+| T8. B4 + B5 (flexible speed caps + support swap) | ✅ done |
+| T9. C1 + C2 (bed-temperature conflict resolution) | ✅ done |
+| T10. C3 + C4 (cooling time + fan range) | ✅ done |
+| T11. D2 + D3 (Z-hop cap + mixed-alternation info) | ✅ done |
+| T12. `u1kit/geometry.py` — 3D/3dmodel.model parser | ✅ done |
+| T13. E1 thin-feature warning | ✅ done |
+| T14. E2 + E3 (layer-time info + prime tower brim) | ⏳ not started |
+| T15. F1 Print Preprocessing lineage | ⏳ not started |
+| T16. Ship remaining presets + Phase 2 exit verification | ⏳ not started |
+
+---
+
 ## Tasks
 
 ### Task 0: Commit Phase 2 spec docs into the repo

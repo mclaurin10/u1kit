@@ -1,6 +1,9 @@
 # Decisions
 
-Design decisions and open questions for u1kit Phase 1.
+Design decisions and open questions for u1kit. Phase 1 contract fixes and
+Phase 2 ground-truth resolutions both live here. New decisions (and any
+Phase 2 implementation notes that deviate from the proposed resolutions below)
+should be appended in the same commit that introduces them.
 
 ## Archive fidelity
 
