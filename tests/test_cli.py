@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import zipfile
+from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +12,23 @@ import pytest
 from click.testing import CliRunner
 
 from tests.conftest import make_bambu_4color_3mf, make_full_spectrum_3mf
+from u1kit import __version__, cli
 from u1kit.cli import main
+
+
+class TestVersion:
+    """Version resolution behavior for local (editable) checkouts."""
+
+    def test_cli_version_falls_back_to_package_dunder_version(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When metadata is absent, CLI should still resolve a version string."""
+
+        def _raise_not_found(_: str) -> str:
+            raise PackageNotFoundError()
+
+        monkeypatch.setattr(cli, "_pkg_version", _raise_not_found)
+        assert cli._cli_version() == __version__
 
 
 class TestLint:
