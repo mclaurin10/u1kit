@@ -90,3 +90,27 @@ All three gates must pass on every commit. `.gitattributes` normalizes line
 endings to LF across platforms; if your editor saves with CRLF, the renormalize
 rule will correct on checkout. Project conventions — rule/fixer contract,
 commit policy, module layout — are documented in `CLAUDE.md`.
+
+## GUI (Phase 3)
+
+A Tauri + React desktop app lives in [`gui/`](gui/) that wraps this CLI as a
+PyInstaller sidecar. The backend contract is the CLI's JSON output (stable
+`schema_version: "1"`). See [`phase-three-plan.md`](phase-three-plan.md) for
+the phased task breakdown.
+
+```bash
+# Prereqs: Node 22+, pnpm 10+, Rust 1.75+ (with rustup target for your host)
+cd gui
+pnpm install
+pnpm tauri dev        # launches the desktop window
+pnpm typecheck        # tsc --noEmit with strict options
+pnpm lint             # eslint
+pnpm test --run       # vitest
+```
+
+Building the sidecar binary for release (requires the `release` extra):
+
+```bash
+pip install -e ".[release]"       # adds pyinstaller
+python scripts/build_sidecar.py   # emits dist/sidecar/<target-triple>/u1kit
+```

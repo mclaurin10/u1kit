@@ -1,0 +1,78 @@
+name: gui-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gui/**"
+      - "u1kit/**"
+      - "scripts/build_sidecar.py"
+      - ".github/workflows/gui-ci.yml"
+  pull_request:
+    paths:
+      - "gui/**"
+      - "u1kit/**"
+      - "scripts/build_sidecar.py"
+      - ".github/workflows/gui-ci.yml"
+
+jobs:
+  # Frontend typecheck / lint / test — runs fast, no native deps.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: gui/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test --run
+
+  # Full Tauri build matrix — slow (cold cargo compile), only on push to main
+  # or when explicitly requested via label 'full-build'.
+  tauri-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+    runs-on: ${{ matrix.platform.os }}
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'full-build')
+    defaults:
+      run:
+        working-directory: gui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: gui/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gui/src-tauri -> target
+      - name: Install Linux deps
+        if: matrix.platform.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      - run: pnpm install --frozen-lockfile
+      # Debug build only — release + sidecar bundling happens in G10's release workflow.
+      - run: pnpm tauri build --debug --no-bundle
