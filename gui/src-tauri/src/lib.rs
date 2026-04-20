@@ -4,6 +4,9 @@
 //   - dialog: required by the file-picker and save-as flows
 //     (@tauri-apps/plugin-dialog).
 //   - opener: for external URL handling if/when we need it.
+// Custom command: copy_file — used by the Save-as flow (G8).
+
+mod commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -11,6 +14,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![commands::copy_file])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

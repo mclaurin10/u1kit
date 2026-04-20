@@ -17,6 +17,7 @@
 
 import { Command } from "@tauri-apps/plugin-shell";
 import { resolveResource } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 
 import type {
   FixResponse,
@@ -180,4 +181,13 @@ export async function fixFile(
 
 export async function listPresets(): Promise<PresetsListResponse> {
   return runCli<PresetsListResponse>(["presets", "list", "--json"]);
+}
+
+/**
+ * Copy `src` to `dst`. Used by the Save-as flow (G8) to copy the fix
+ * command's output to the user-chosen destination. Overwrites `dst`
+ * without prompting — Tauri's dialog.save() already asks for confirm.
+ */
+export async function copyFile(src: string, dst: string): Promise<void> {
+  await invoke("copy_file", { src, dst });
 }

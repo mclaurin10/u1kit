@@ -1,4 +1,5 @@
 import * as React from "react";
+import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 
 import { DropZone } from "@/components/DropZone";
 import { FixActionBar } from "@/components/FixActionBar";
@@ -7,8 +8,28 @@ import { LintView } from "@/components/LintView";
 import { RuleDocSheet } from "@/components/RuleDocSheet";
 import { Button } from "@/components/ui/button";
 import { ToastProvider, useToast } from "@/components/ui/toast";
-import { fixFile, lintFile, listPresets } from "@/lib/cli";
+import { copyFile, fixFile, lintFile, listPresets } from "@/lib/cli";
 import { initialSession, sessionReducer } from "@/state/session";
+
+function defaultOutputName(sourcePath: string): string {
+  // DECISIONS G-vi: `{stem}_u1.3mf`. Works with both / and \ separators.
+  const lastSep = Math.max(
+    sourcePath.lastIndexOf("/"),
+    sourcePath.lastIndexOf("\\"),
+  );
+  const filename = lastSep === -1 ? sourcePath : sourcePath.slice(lastSep + 1);
+  const dot = filename.lastIndexOf(".");
+  const stem = dot === -1 ? filename : filename.slice(0, dot);
+  return `${stem}_u1.3mf`;
+}
+
+function parentDir(sourcePath: string): string {
+  const lastSep = Math.max(
+    sourcePath.lastIndexOf("/"),
+    sourcePath.lastIndexOf("\\"),
+  );
+  return lastSep === -1 ? "" : sourcePath.slice(0, lastSep);
+}
 
 function AppShell(): React.JSX.Element {
   const [state, dispatch] = React.useReducer(sessionReducer, initialSession);
@@ -171,6 +192,32 @@ function AppShell(): React.JSX.Element {
             <FixResultView
               fix={state.fix}
               sourcePath={state.filePath}
+              onSaveAs={async () => {
+                if (state.fix === null || state.filePath === null) return;
+                const defaultPath =
+                  parentDir(state.filePath) +
+                  (parentDir(state.filePath) === "" ? "" : "/") +
+                  defaultOutputName(state.filePath);
+                try {
+                  const chosen = await saveDialog({
+                    defaultPath,
+                    filters: [{ name: "3MF", extensions: ["3mf"] }],
+                  });
+                  if (typeof chosen !== "string" || chosen === "") return;
+                  // The CLI wrote the fix output at sourcePath_u1.3mf
+                  // (matches defaultOutputName logic in App's handleApply).
+                  const fixedOutput = state.filePath.replace(
+                    /\.3mf$/i,
+                    "_u1.3mf",
+                  );
+                  await copyFile(fixedOutput, chosen);
+                  toast(`Saved to ${chosen}`);
+                } catch (cause) {
+                  const message =
+                    cause instanceof Error ? cause.message : String(cause);
+                  toast(`Save failed: ${message}`, "destructive");
+                }
+              }}
               onReset={() => dispatch({ type: "RESET" })}
             />
           )}
