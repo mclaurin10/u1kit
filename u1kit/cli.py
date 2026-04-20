@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from importlib.metadata import version as _pkg_version
 from importlib.resources import as_file, files
 from pathlib import Path
 from typing import Any
@@ -162,6 +163,7 @@ def _get_rules_for_preset(preset: dict[str, Any]) -> list[type[Rule]]:
 
 
 @click.group()
+@click.version_option(version=_pkg_version("u1kit"), message="%(version)s")
 def main() -> None:
     """u1kit — convert Bambu/Makerworld .3mf files for the Snapmaker U1."""
 
@@ -312,7 +314,8 @@ def presets_list(use_json: bool) -> None:
 
     available = _list_presets()
     if use_json:
-        click.echo(json_mod.dumps(available, indent=2))
+        payload = {"schema_version": "1", "presets": available}
+        click.echo(json_mod.dumps(payload, indent=2))
     else:
         for p in available:
             click.echo(

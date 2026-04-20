@@ -192,13 +192,14 @@ class TestPresets:
         assert "bambu-to-u1" in result.output
 
     def test_presets_list_json(self) -> None:
-        """--json flag should produce valid JSON."""
+        """--json flag should produce valid JSON with schema_version wrapper."""
         runner = CliRunner()
         result = runner.invoke(main, ["presets", "list", "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert isinstance(data, list)
-        assert any(p["name"] == "bambu-to-u1" for p in data)
+        assert data["schema_version"] == "1"
+        assert isinstance(data["presets"], list)
+        assert any(p["name"] == "bambu-to-u1" for p in data["presets"])
 
     def test_all_starter_presets_discoverable(self) -> None:
         """All five starter presets must surface from presets list."""
@@ -213,7 +214,7 @@ class TestPresets:
         result = runner.invoke(main, ["presets", "list", "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        names = {p["name"] for p in data}
+        names = {p["name"] for p in data["presets"]}
         missing = expected - names
         assert not missing, f"Missing starter presets: {missing}"
 
@@ -294,7 +295,7 @@ class TestUserPresetLoader:
         result = runner.invoke(main, ["presets", "list", "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        names = {p["name"]: p for p in data}
+        names = {p["name"]: p for p in data["presets"]}
         assert names["custom"]["source"] == "user"
         assert names["bambu-to-u1"]["source"] == "bundled"
 

@@ -21,6 +21,11 @@ dev = [
     "ruff>=0.5",
     "types-PyYAML>=6.0",
 ]
+# Only needed to build the PyInstaller sidecar for the Phase 3 GUI; not
+# required for regular dev work. Install with `pip install -e ".[release]"`.
+release = [
+    "pyinstaller>=6.5",
+]
 
 [project.scripts]
 u1kit = "u1kit.cli:main"

@@ -1,0 +1,12 @@
+# PyInstaller sidecar build artifacts (regenerated; only release binaries matter).
+dist/
+
+# Tauri / GUI artifacts (Phase 3).
+gui/node_modules/
+gui/dist/
+gui/src-tauri/target/
+gui/src-tauri/gen/
+
+# IDE / local-only state.
+.venv/
+*.egg-info/
