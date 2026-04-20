@@ -73,6 +73,64 @@ export class CliSchemaMismatchError extends CliError {
   }
 }
 
+export class CliTimeoutError extends CliError {
+  override name = "CliTimeoutError";
+  constructor(message: string, public readonly timeoutMs: number) {
+    super(message);
+  }
+}
+
+/** Hard cap per sidecar call — 60 s is generous for even worst-case lint/fix. */
+const CLI_TIMEOUT_MS = 60_000;
+
+/** Race a promise against a timeout. Throws CliTimeoutError on overrun. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new CliTimeoutError(`Timed out after ${ms}ms`, ms));
+    }, ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      },
+    );
+  });
+}
+
+/**
+ * Map a thrown error to a user-facing message. Unknown errors fall
+ * through as-is; every typed CliError becomes a short, actionable line.
+ */
+export function formatCliError(cause: unknown): string {
+  if (cause instanceof CliNotFoundError) {
+    return "u1kit CLI is missing. Reinstall or check your PATH.";
+  }
+  if (cause instanceof CliCrashedError) {
+    const detail = cause.stderr?.trim();
+    return detail
+      ? `u1kit crashed (exit ${cause.exitCode}): ${detail}`
+      : `u1kit crashed (exit ${cause.exitCode}).`;
+  }
+  if (cause instanceof CliMalformedJsonError) {
+    return "u1kit returned unreadable output. This usually means a log line leaked into stdout — file a bug.";
+  }
+  if (cause instanceof CliSchemaMismatchError) {
+    return `u1kit JSON schema mismatch (expected ${cause.expected}, got ${String(cause.actual)}). The GUI and CLI are out of sync — reinstall both.`;
+  }
+  if (cause instanceof CliTimeoutError) {
+    return `u1kit took longer than ${Math.round(cause.timeoutMs / 1000)} s and was aborted.`;
+  }
+  if (cause instanceof Error) {
+    return cause.message;
+  }
+  return String(cause);
+}
+
 /**
  * Resolve the sidecar binary path. In dev, we rely on `u1kit` being on
  * PATH. In a Tauri release build, the binary ships inside the app bundle
@@ -103,8 +161,9 @@ export async function runCli<
   let output;
   try {
     const cmd = await resolveSidecarCommand(args);
-    output = await cmd.execute();
+    output = await withTimeout(cmd.execute(), CLI_TIMEOUT_MS);
   } catch (cause) {
+    if (cause instanceof CliTimeoutError) throw cause;
     const message = cause instanceof Error ? cause.message : String(cause);
     throw new CliNotFoundError(
       `Failed to invoke u1kit CLI: ${message}. ` +

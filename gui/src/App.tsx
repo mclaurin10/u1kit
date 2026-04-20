@@ -8,7 +8,13 @@ import { LintView } from "@/components/LintView";
 import { RuleDocSheet } from "@/components/RuleDocSheet";
 import { Button } from "@/components/ui/button";
 import { ToastProvider, useToast } from "@/components/ui/toast";
-import { copyFile, fixFile, lintFile, listPresets } from "@/lib/cli";
+import {
+  copyFile,
+  fixFile,
+  formatCliError,
+  lintFile,
+  listPresets,
+} from "@/lib/cli";
 import { initialSession, sessionReducer } from "@/state/session";
 
 function defaultOutputName(sourcePath: string): string {
@@ -47,8 +53,7 @@ function AppShell(): React.JSX.Element {
         }
       } catch (cause) {
         if (cancelled) return;
-        const message = cause instanceof Error ? cause.message : String(cause);
-        toast(`Could not load presets: ${message}`, "destructive");
+        toast(`Could not load presets: ${formatCliError(cause)}`, "destructive");
       }
     }
     void run();
@@ -72,8 +77,7 @@ function AppShell(): React.JSX.Element {
         }
       } catch (cause) {
         if (cancelled) return;
-        const message = cause instanceof Error ? cause.message : String(cause);
-        dispatch({ type: "LINT_FAILED", error: message });
+        dispatch({ type: "LINT_FAILED", error: formatCliError(cause) });
       }
     }
     void run();
@@ -99,8 +103,7 @@ function AppShell(): React.JSX.Element {
       );
       dispatch({ type: "FIX_SUCCEEDED", fix });
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : String(cause);
-      dispatch({ type: "FIX_FAILED", error: message });
+      dispatch({ type: "FIX_FAILED", error: formatCliError(cause) });
     }
   }, [state.filePath, state.presetName, state.checkedFixerIds]);
 
