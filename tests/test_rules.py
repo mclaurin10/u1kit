@@ -21,6 +21,7 @@ from u1kit.rules.d3_alternation_cost import D3AlternationCost
 from u1kit.rules.e1_thin_feature import E1ThinFeature
 from u1kit.rules.e2_layer_time_clamp import E2LayerTimeClamp
 from u1kit.rules.e3_prime_tower_brim import E3PrimeTowerBrim
+from u1kit.rules.f1_preprocessing_lineage import F1PreprocessingLineage
 
 
 class TestA1SourceSlicer:
@@ -1087,3 +1088,82 @@ class TestE3PrimeTowerBrim:
             geometry_bounds=None,
         )
         assert E3PrimeTowerBrim().check(ctx) == []
+
+
+class TestF1PreprocessingLineage:
+    """F1: info when used filament settings_id lacks @Snapmaker U1 lineage."""
+
+    def test_fires_on_missing_suffix(self) -> None:
+        # settings_id with no " @…" suffix at all.
+        ctx = Context(
+            config={
+                "filament_colour": ["#FF0000"],
+                "filament_type": ["PLA"],
+                "filament_settings_id": ["Generic PLA"],
+                "wall_filament": "1",
+            },
+        )
+        results = F1PreprocessingLineage().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.INFO
+        assert results[0].fixer_id is None
+        assert "slot 1" in results[0].message
+        assert "PLA" in results[0].message
+
+    def test_fires_on_foreign_suffix(self) -> None:
+        # @BBL X1C instead of @Snapmaker U1.
+        ctx = Context(
+            config={
+                "filament_colour": ["#FF0000"],
+                "filament_type": ["PLA"],
+                "filament_settings_id": ["Generic PLA @BBL X1C"],
+                "wall_filament": "1",
+            },
+        )
+        results = F1PreprocessingLineage().check(ctx)
+        assert len(results) == 1
+        assert "@BBL X1C" in results[0].message or "BBL X1C" in results[0].message
+
+    def test_passes_on_snapmaker_u1(self) -> None:
+        ctx = Context(
+            config={
+                "filament_colour": ["#FF0000"],
+                "filament_type": ["PLA"],
+                "filament_settings_id": ["Snapmaker PLA @Snapmaker U1"],
+                "wall_filament": "1",
+            },
+        )
+        assert F1PreprocessingLineage().check(ctx) == []
+
+    def test_fires_on_empty_settings_id(self) -> None:
+        ctx = Context(
+            config={
+                "filament_colour": ["#FF0000"],
+                "filament_type": ["PLA"],
+                "filament_settings_id": [""],
+                "wall_filament": "1",
+            },
+        )
+        results = F1PreprocessingLineage().check(ctx)
+        assert len(results) == 1
+        assert "no filament_settings_id" in results[0].message
+
+    def test_emits_one_finding_per_offending_slot(self) -> None:
+        # Slots 1 and 3 used; only slot 3 has bad lineage.
+        ctx = Context(
+            config={
+                "filament_colour": ["#FF0000", "#00FF00", "#0000FF"],
+                "filament_type": ["PLA", "PETG", "TPU"],
+                "filament_settings_id": [
+                    "Snapmaker PLA @Snapmaker U1",
+                    "Generic PETG",
+                    "Generic TPU @BBL X1C",
+                ],
+                "wall_filament": "1",
+                "sparse_infill_filament": "3",
+            },
+        )
+        results = F1PreprocessingLineage().check(ctx)
+        assert len(results) == 1
+        assert "slot 3" in results[0].message
+        assert "TPU" in results[0].message

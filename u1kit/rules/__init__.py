@@ -21,6 +21,7 @@ from u1kit.rules.d3_alternation_cost import D3AlternationCost
 from u1kit.rules.e1_thin_feature import E1ThinFeature
 from u1kit.rules.e2_layer_time_clamp import E2LayerTimeClamp
 from u1kit.rules.e3_prime_tower_brim import E3PrimeTowerBrim
+from u1kit.rules.f1_preprocessing_lineage import F1PreprocessingLineage
 
 __all__ = [
     "RULES",
@@ -51,6 +52,7 @@ RULES: list[type[Rule]] = [
     E1ThinFeature,
     E2LayerTimeClamp,
     E3PrimeTowerBrim,
+    F1PreprocessingLineage,
 ]
 
 _RULE_MAP: dict[str, type[Rule]] = {cls().id: cls for cls in RULES}

@@ -46,7 +46,7 @@ u1kit presets list
 | E1 | warn | 2 | — | Warn when thinnest object feature ÷ outer-wall line width < 3 |
 | E2 | info | 2 | — | Warn when cooling minimums will dominate actual print speed |
 | E3 | warn | 2 | ✓ | Bump prime-tower brim width on small plates (opt-in via preset option `e3_auto_bump`) |
-| F1 | info | 2 | — | Flag filament profiles without `@Snapmaker U1` lineage *(not yet shipped)* |
+| F1 | info | 2 | — | Flag filament profiles without `@Snapmaker U1` lineage |
 
 ## Exit criteria
 
