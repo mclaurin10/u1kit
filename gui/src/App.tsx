@@ -1,17 +1,42 @@
 import * as React from "react";
 
 import { DropZone } from "@/components/DropZone";
+import { FixActionBar } from "@/components/FixActionBar";
+import { FixResultView } from "@/components/FixResultView";
 import { LintView } from "@/components/LintView";
 import { RuleDocSheet } from "@/components/RuleDocSheet";
 import { Button } from "@/components/ui/button";
-import { ToastProvider } from "@/components/ui/toast";
-import { lintFile } from "@/lib/cli";
+import { ToastProvider, useToast } from "@/components/ui/toast";
+import { fixFile, lintFile, listPresets } from "@/lib/cli";
 import { initialSession, sessionReducer } from "@/state/session";
 
 function AppShell(): React.JSX.Element {
   const [state, dispatch] = React.useReducer(sessionReducer, initialSession);
   const [openRuleDoc, setOpenRuleDoc] = React.useState<string | null>(null);
+  const { toast } = useToast();
 
+  // One-time preset fetch at startup.
+  React.useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      try {
+        const presets = await listPresets();
+        if (!cancelled) {
+          dispatch({ type: "PRESETS_LOADED", presets });
+        }
+      } catch (cause) {
+        if (cancelled) return;
+        const message = cause instanceof Error ? cause.message : String(cause);
+        toast(`Could not load presets: ${message}`, "destructive");
+      }
+    }
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [toast]);
+
+  // Lint on FILE_DROPPED.
   React.useEffect(() => {
     if (state.status !== "fileLoaded" || state.filePath === null) return;
     let cancelled = false;
@@ -30,18 +55,39 @@ function AppShell(): React.JSX.Element {
         dispatch({ type: "LINT_FAILED", error: message });
       }
     }
-
     void run();
     return () => {
       cancelled = true;
     };
   }, [state.status, state.filePath]);
 
+  const handleApply = React.useCallback(async () => {
+    if (state.filePath === null) return;
+    if (state.checkedFixerIds.size === 0) return;
+
+    dispatch({ type: "FIX_STARTED" });
+    try {
+      // Default output path: append `_u1` before `.3mf`. G8 replaces this
+      // placeholder with a tempfile; Save-as copies to the user's choice.
+      const outputPath = state.filePath.replace(/\.3mf$/i, "_u1.3mf");
+      const fix = await fixFile(
+        state.filePath,
+        state.presetName,
+        outputPath,
+        [...state.checkedFixerIds],
+      );
+      dispatch({ type: "FIX_SUCCEEDED", fix });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      dispatch({ type: "FIX_FAILED", error: message });
+    }
+  }, [state.filePath, state.presetName, state.checkedFixerIds]);
+
   return (
     <div className="container flex min-h-screen flex-col gap-6 py-8">
       <header className="flex items-baseline justify-between">
         <h1 className="text-3xl font-semibold tracking-tight">u1kit</h1>
-        {state.filePath !== null && (
+        {state.filePath !== null && state.status !== "fixing" && (
           <Button
             variant="ghost"
             size="sm"
@@ -92,8 +138,42 @@ function AppShell(): React.JSX.Element {
               }
               onWhy={setOpenRuleDoc}
             />
+            {state.presets !== null && (
+              <FixActionBar
+                presets={state.presets.presets}
+                presetName={state.presetName}
+                onPresetChange={(name) =>
+                  dispatch({ type: "PRESET_CHANGED", presetName: name })
+                }
+                checkedCount={state.checkedFixerIds.size}
+                onApply={handleApply}
+              />
+            )}
           </>
         )}
+
+        {state.status === "fixing" && (
+          <div className="flex items-center gap-3 rounded-lg border bg-card p-6 text-card-foreground">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-sm">
+              Applying preset{" "}
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                {state.presetName}
+              </code>
+              …
+            </p>
+          </div>
+        )}
+
+        {state.status === "done" &&
+          state.fix !== null &&
+          state.filePath !== null && (
+            <FixResultView
+              fix={state.fix}
+              sourcePath={state.filePath}
+              onReset={() => dispatch({ type: "RESET" })}
+            />
+          )}
 
         {state.status === "error" && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-6 text-sm">

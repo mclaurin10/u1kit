@@ -159,8 +159,9 @@ export async function fixFile(
   filePath: string,
   preset: string,
   outputPath: string,
+  onlyFixerIds?: string[],
 ): Promise<FixResponse> {
-  return runCli<FixResponse>([
+  const args = [
     "fix",
     filePath,
     "--preset",
@@ -168,7 +169,13 @@ export async function fixFile(
     "--out",
     outputPath,
     "--json",
-  ]);
+  ];
+  if (onlyFixerIds !== undefined && onlyFixerIds.length > 0) {
+    for (const id of onlyFixerIds) {
+      args.push("--only", id);
+    }
+  }
+  return runCli<FixResponse>(args);
 }
 
 export async function listPresets(): Promise<PresetsListResponse> {

@@ -223,6 +223,16 @@ def lint(file: str, use_json: bool) -> None:
     default=0.2,
     help="Uniform height for D1 rule (default: 0.2)",
 )
+@click.option(
+    "--only",
+    "only_fixers",
+    multiple=True,
+    help=(
+        "Restrict fixes to the given fixer IDs (lowercase rule IDs, e.g. "
+        "'a2', 'b3'). May be passed multiple times. A1 is always included "
+        "as it's a no-op info rule used for slicer detection."
+    ),
+)
 def fix(
     file: str,
     preset: str,
@@ -231,6 +241,7 @@ def fix(
     output_path: str | None,
     use_json: bool,
     uniform_height: float,
+    only_fixers: tuple[str, ...],
 ) -> None:
     """Fix a .3mf file using a preset."""
     preset_data = _load_preset(preset)
@@ -268,6 +279,8 @@ def fix(
     options["uniform_height"] = uniform_height
     if mode == FixMode.INTERACTIVE:
         options["b1_interactive"] = True
+    if only_fixers:
+        options["only_fixers"] = {f.lower() for f in only_fixers}
 
     pipeline = Pipeline(
         rules=rules,

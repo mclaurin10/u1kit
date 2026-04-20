@@ -105,9 +105,12 @@ class Pipeline:
         if self.mode == FixMode.DRY_RUN:
             return results, [], config, filament_configs
 
-        # Collect fixable results
+        # Collect fixable results; respect --only filter from context.options.
         fixer_results: list[FixerResult] = []
         fixable = [r for r in results if r.fixer_id is not None]
+        only_fixers = context.options.get("only_fixers")
+        if only_fixers:
+            fixable = [r for r in fixable if r.fixer_id in only_fixers]
 
         # Deduplicate by fixer_id (multiple results may point to same fixer)
         seen_fixers: set[str] = set()
