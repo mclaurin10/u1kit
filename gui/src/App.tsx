@@ -1,19 +1,47 @@
 import * as React from "react";
 
 import { DropZone } from "@/components/DropZone";
+import { LintView } from "@/components/LintView";
 import { Button } from "@/components/ui/button";
 import { ToastProvider } from "@/components/ui/toast";
+import { lintFile } from "@/lib/cli";
 import { initialSession, sessionReducer } from "@/state/session";
 
 /**
- * Top-level app shell. Owns the session reducer; renders a view based
- * on `state.status`. Subsequent tasks expand the view cases:
- *   - G5: Linting / ShowingFindings lint view
- *   - G7: Fixing / Done with apply workflow
- *   - G9: Error with typed messaging
+ * AppShell owns the session state machine and routes the current
+ * status to the right view. Each task from G4 onward adds or
+ * specializes one of these branches.
  */
 function AppShell(): React.JSX.Element {
   const [state, dispatch] = React.useReducer(sessionReducer, initialSession);
+
+  // Kick off lint when the user picks a file. The FILE_DROPPED action
+  // captures the path; a separate LINT_STARTED + lintFile() call
+  // drives the CLI invocation, resolving into LINT_SUCCEEDED/FAILED.
+  React.useEffect(() => {
+    if (state.status !== "fileLoaded" || state.filePath === null) return;
+    let cancelled = false;
+    const filePath = state.filePath;
+
+    async function run() {
+      dispatch({ type: "LINT_STARTED" });
+      try {
+        const lint = await lintFile(filePath);
+        if (!cancelled) {
+          dispatch({ type: "LINT_SUCCEEDED", lint });
+        }
+      } catch (cause) {
+        if (cancelled) return;
+        const message = cause instanceof Error ? cause.message : String(cause);
+        dispatch({ type: "LINT_FAILED", error: message });
+      }
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.status, state.filePath]);
 
   return (
     <div className="container flex min-h-screen flex-col gap-6 py-8">
@@ -39,17 +67,45 @@ function AppShell(): React.JSX.Element {
           />
         )}
 
-        {state.status === "fileLoaded" && state.filePath !== null && (
-          <div className="rounded-lg border bg-card p-6 text-card-foreground">
+        {(state.status === "fileLoaded" || state.status === "linting") && (
+          <div className="flex items-center gap-3 rounded-lg border bg-card p-6 text-card-foreground">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <p className="text-sm">
-              Loaded{" "}
+              Linting{" "}
               <code className="rounded bg-muted px-1 py-0.5 text-xs">
                 {state.filePath}
               </code>
+              …
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Lint view (G5) replaces this placeholder next.
-            </p>
+          </div>
+        )}
+
+        {state.status === "showingFindings" && state.lint !== null && (
+          <>
+            <div className="rounded-lg border bg-card p-4 text-sm text-card-foreground">
+              Loaded{" "}
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                {state.filePath}
+              </code>{" "}
+              — {state.lint.summary.fail} fail, {state.lint.summary.warn} warn,{" "}
+              {state.lint.summary.info} info
+            </div>
+            <LintView lint={state.lint} />
+          </>
+        )}
+
+        {state.status === "error" && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-6 text-sm">
+            <p className="font-medium text-destructive">Something went wrong.</p>
+            <p className="mt-1 text-muted-foreground">{state.error}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => dispatch({ type: "RESET" })}
+            >
+              Try another file
+            </Button>
           </div>
         )}
       </main>
