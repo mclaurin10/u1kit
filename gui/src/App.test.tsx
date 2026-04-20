@@ -3,16 +3,12 @@ import { render, screen } from "@testing-library/react";
 
 import App from "./App";
 
-describe("App (scaffold smoke)", () => {
-  it("renders the product name", () => {
+describe("App", () => {
+  it("renders the product heading and starts in the drop-zone view", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: "u1kit" })).toBeInTheDocument();
-  });
-
-  it("renders the verify-scaffold button", () => {
-    render(<App />);
     expect(
-      screen.getByRole("button", { name: /verify scaffold/i }),
+      screen.getByRole("button", { name: /choose file/i }),
     ).toBeInTheDocument();
   });
 });
