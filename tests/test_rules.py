@@ -19,6 +19,7 @@ from u1kit.rules.d1_mixed_height_bounds import D1MixedHeightBounds
 from u1kit.rules.d2_z_hop_magnitude import D2ZHopMagnitude
 from u1kit.rules.d3_alternation_cost import D3AlternationCost
 from u1kit.rules.e1_thin_feature import E1ThinFeature
+from u1kit.rules.e2_layer_time_clamp import E2LayerTimeClamp
 
 
 class TestA1SourceSlicer:
@@ -894,3 +895,101 @@ class TestE1ThinFeature:
         assert len(results) == 1
         assert "thin" in results[0].message
         assert "thick" not in results[0].message
+
+
+class TestE2LayerTimeClamp:
+    """E2: info when estimated layer time at max vmax is below cooling minimum."""
+
+    def _bounds(self, width: float, height: float) -> list:
+        from u1kit.geometry import ObjectBounds
+
+        return [
+            ObjectBounds(
+                id="1",
+                min_x=0.0, min_y=0.0, min_z=0.0,
+                max_x=width, max_y=height, max_z=10.0,
+            ),
+        ]
+
+    def test_triggers_on_small_plate_fast_filament(self) -> None:
+        # 40x40 plate, 0.2 layer, vmax=25 mm³/s:
+        #   layer_volume = 1600 * 0.2 = 320 mm³
+        #   min_layer_time = 320 / 25 = 12.8 s
+        # slow_down_layer_time = 15 s → 12.8 < 15 → fires.
+        ctx = Context(
+            config={
+                "layer_height": "0.2",
+                "filament_colour": ["#FF0000"],
+                "filament_max_volumetric_speed": ["25"],
+                "slow_down_layer_time": ["15"],
+                "wall_filament": "1",
+            },
+            geometry_bounds=self._bounds(40.0, 40.0),
+        )
+        results = E2LayerTimeClamp().check(ctx)
+        assert len(results) == 1
+        assert results[0].severity == Severity.INFO
+        assert results[0].fixer_id is None
+        assert "12.8" in results[0].message
+        assert "15" in results[0].message
+
+    def test_no_op_on_large_plate(self) -> None:
+        # 250x250 plate, 0.2 layer, vmax=25:
+        #   layer_volume = 62500 * 0.2 = 12500 mm³
+        #   min_layer_time = 500 s ≫ 15 s → no finding.
+        ctx = Context(
+            config={
+                "layer_height": "0.2",
+                "filament_colour": ["#FF0000"],
+                "filament_max_volumetric_speed": ["25"],
+                "slow_down_layer_time": ["15"],
+                "wall_filament": "1",
+            },
+            geometry_bounds=self._bounds(250.0, 250.0),
+        )
+        assert E2LayerTimeClamp().check(ctx) == []
+
+    def test_no_op_when_geometry_missing(self) -> None:
+        ctx = Context(
+            config={
+                "layer_height": "0.2",
+                "filament_colour": ["#FF0000"],
+                "filament_max_volumetric_speed": ["25"],
+                "slow_down_layer_time": ["15"],
+                "wall_filament": "1",
+            },
+            geometry_bounds=None,
+        )
+        assert E2LayerTimeClamp().check(ctx) == []
+
+    def test_no_op_when_slow_down_layer_time_missing(self) -> None:
+        ctx = Context(
+            config={
+                "layer_height": "0.2",
+                "filament_colour": ["#FF0000"],
+                "filament_max_volumetric_speed": ["25"],
+                "wall_filament": "1",
+            },
+            geometry_bounds=self._bounds(40.0, 40.0),
+        )
+        assert E2LayerTimeClamp().check(ctx) == []
+
+    def test_uses_minimum_vmax_across_used_filaments(self) -> None:
+        # Two filaments used, slower one dominates.
+        # 40x40 plate, 0.2 layer, min vmax = 8 mm³/s (PEBA):
+        #   layer_volume = 320 mm³; min_layer_time = 320 / 8 = 40 s
+        # slow_down_layer_time max = 20 s → 40 ≥ 20 → no finding.
+        # (If we incorrectly used max vmax=25, time would be 12.8 s → would fire.)
+        ctx = Context(
+            config={
+                "layer_height": "0.2",
+                "filament_colour": ["#FF0000", "#00FF00"],
+                "filament_max_volumetric_speed": ["25", "8"],
+                "slow_down_layer_time": ["12", "20"],
+                "wall_filament": "1",
+                "sparse_infill_filament": "2",
+            },
+            geometry_bounds=self._bounds(40.0, 40.0),
+        )
+        # min_vmax=8 → min_layer_time=40 s; max slow_down=20 s → 40 ≥ 20 → empty.
+        assert E2LayerTimeClamp().check(ctx) == []

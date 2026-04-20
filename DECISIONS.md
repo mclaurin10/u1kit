@@ -195,8 +195,12 @@ extend items 13–16 above with implementation-level specifics and introduce
 preset-level options routing needed by E3's opt-in fixer.
 
 21. **E2 estimated-layer-time formula (extends item 13)** —
-    `min_layer_time = plate_footprint_mm² × layer_height × min(filament_max_volumetric_speed[used]) / 60`.
-    If `min_layer_time < max(slow_down_layer_time[used])` for any used filament,
+    `layer_volume_mm3 = plate_footprint_mm² × layer_height`;
+    `min_layer_time_s = layer_volume_mm3 / min(filament_max_volumetric_speed[used])`.
+    (Correction: the earlier draft of this resolution had a `× vmax / 60` form
+    that was dimensionally incorrect — `filament_max_volumetric_speed` is in
+    mm³/s, so dividing volume by vmax yields seconds directly.) If
+    `min_layer_time_s < max(slow_down_layer_time[used])` for any used filament,
     emit one `info`-severity result. Plate footprint comes from
     `u1kit.geometry.total_plate_footprint(context.geometry_bounds)`; the used-set
     comes from `u1kit.filaments.get_used_filament_indices(config)`. No fixer —

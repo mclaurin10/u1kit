@@ -44,7 +44,7 @@ u1kit presets list
 | D2 | warn | 2 | ✓ | Cap Z-hop at `max(1.5 mm, 4 × layer_height)` when ≥ 5× layer height |
 | D3 | info | 2 | — | Surface estimated toolchange count from 1:1 mixed blends |
 | E1 | warn | 2 | — | Warn when thinnest object feature ÷ outer-wall line width < 3 |
-| E2 | info | 2 | — | Warn when cooling minimums will dominate actual print speed *(not yet shipped)* |
+| E2 | info | 2 | — | Warn when cooling minimums will dominate actual print speed |
 | E3 | warn | 2 | ✓ | Bump prime-tower brim width on small plates *(not yet shipped)* |
 | F1 | info | 2 | — | Flag filament profiles without `@Snapmaker U1` lineage *(not yet shipped)* |
 
