@@ -2,22 +2,16 @@ import * as React from "react";
 
 import { DropZone } from "@/components/DropZone";
 import { LintView } from "@/components/LintView";
+import { RuleDocSheet } from "@/components/RuleDocSheet";
 import { Button } from "@/components/ui/button";
 import { ToastProvider } from "@/components/ui/toast";
 import { lintFile } from "@/lib/cli";
 import { initialSession, sessionReducer } from "@/state/session";
 
-/**
- * AppShell owns the session state machine and routes the current
- * status to the right view. Each task from G4 onward adds or
- * specializes one of these branches.
- */
 function AppShell(): React.JSX.Element {
   const [state, dispatch] = React.useReducer(sessionReducer, initialSession);
+  const [openRuleDoc, setOpenRuleDoc] = React.useState<string | null>(null);
 
-  // Kick off lint when the user picks a file. The FILE_DROPPED action
-  // captures the path; a separate LINT_STARTED + lintFile() call
-  // drives the CLI invocation, resolving into LINT_SUCCEEDED/FAILED.
   React.useEffect(() => {
     if (state.status !== "fileLoaded" || state.filePath === null) return;
     let cancelled = false;
@@ -90,7 +84,14 @@ function AppShell(): React.JSX.Element {
               — {state.lint.summary.fail} fail, {state.lint.summary.warn} warn,{" "}
               {state.lint.summary.info} info
             </div>
-            <LintView lint={state.lint} />
+            <LintView
+              lint={state.lint}
+              checkedFixerIds={state.checkedFixerIds}
+              onFindingToggle={(fixerId) =>
+                dispatch({ type: "FINDING_TOGGLED", fixerId })
+              }
+              onWhy={setOpenRuleDoc}
+            />
           </>
         )}
 
@@ -109,6 +110,11 @@ function AppShell(): React.JSX.Element {
           </div>
         )}
       </main>
+
+      <RuleDocSheet
+        ruleId={openRuleDoc}
+        onOpenChange={(open) => !open && setOpenRuleDoc(null)}
+      />
     </div>
   );
 }

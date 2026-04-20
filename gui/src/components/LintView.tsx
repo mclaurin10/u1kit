@@ -42,9 +42,20 @@ function pickDefaultOpen(groups: Record<Severity, Finding[]>): string[] {
 
 export interface LintViewProps {
   lint: LintResponse;
+  /** Set of fixer_ids currently checked for inclusion in the fix run. */
+  checkedFixerIds: Set<string>;
+  /** Called when the user toggles a finding's checkbox. */
+  onFindingToggle: (fixerId: string) => void;
+  /** Called when the user clicks "Why?" on a finding. */
+  onWhy: (ruleId: string) => void;
 }
 
-export function LintView({ lint }: LintViewProps): React.JSX.Element {
+export function LintView({
+  lint,
+  checkedFixerIds,
+  onFindingToggle,
+  onWhy,
+}: LintViewProps): React.JSX.Element {
   const groups = React.useMemo(
     () => groupBySeverity(lint.results),
     [lint.results],
@@ -80,8 +91,20 @@ export function LintView({ lint }: LintViewProps): React.JSX.Element {
               <p className="text-sm text-muted-foreground">None.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                {groups[sev].map((f) => (
-                  <FindingRow key={`${f.rule_id}-${f.message}`} finding={f} />
+                {groups[sev].map((f, idx) => (
+                  <FindingRow
+                    key={`${f.rule_id}-${idx}`}
+                    finding={f}
+                    checked={
+                      f.fixer_id !== null && checkedFixerIds.has(f.fixer_id)
+                    }
+                    onCheckedChange={() => {
+                      if (f.fixer_id !== null) {
+                        onFindingToggle(f.fixer_id);
+                      }
+                    }}
+                    onWhy={onWhy}
+                  />
                 ))}
               </div>
             )}

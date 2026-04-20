@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { LintView } from "./LintView";
@@ -17,80 +17,83 @@ function lint(results: Finding[]): LintResponse {
   };
 }
 
+function renderLint(results: Finding[], checkedFixerIds = new Set<string>()) {
+  const onFindingToggle = vi.fn();
+  const onWhy = vi.fn();
+  return {
+    onFindingToggle,
+    onWhy,
+    ...render(
+      <LintView
+        lint={lint(results)}
+        checkedFixerIds={checkedFixerIds}
+        onFindingToggle={onFindingToggle}
+        onWhy={onWhy}
+      />,
+    ),
+  };
+}
+
 describe("LintView", () => {
   it("shows 'No issues' when results is empty", () => {
-    render(<LintView lint={lint([])} />);
+    renderLint([]);
     expect(screen.getByText(/no issues found/i)).toBeInTheDocument();
   });
 
   it("renders three severity groups with counts", () => {
-    render(
-      <LintView
-        lint={lint([
-          {
-            rule_id: "A2",
-            severity: "fail",
-            message: "profile",
-            fixer_id: "a2",
-            diff_preview: null,
-          },
-          {
-            rule_id: "B3",
-            severity: "warn",
-            message: "bbl fields",
-            fixer_id: "b3",
-            diff_preview: null,
-          },
-          {
-            rule_id: "A1",
-            severity: "info",
-            message: "source",
-            fixer_id: null,
-            diff_preview: null,
-          },
-        ])}
-      />,
-    );
+    renderLint([
+      {
+        rule_id: "A2",
+        severity: "fail",
+        message: "profile",
+        fixer_id: "a2",
+        diff_preview: null,
+      },
+      {
+        rule_id: "B3",
+        severity: "warn",
+        message: "bbl fields",
+        fixer_id: "b3",
+        diff_preview: null,
+      },
+      {
+        rule_id: "A1",
+        severity: "info",
+        message: "source",
+        fixer_id: null,
+        diff_preview: null,
+      },
+    ]);
 
     expect(screen.getByText(/Failing/)).toBeInTheDocument();
     expect(screen.getByText(/Warnings/)).toBeInTheDocument();
     expect(screen.getByText(/Info/)).toBeInTheDocument();
-    // Counts render next to the labels.
     expect(screen.getAllByText(/\(1\)/).length).toBeGreaterThanOrEqual(3);
   });
 
   it("opens the Failing group by default when it has findings", () => {
-    render(
-      <LintView
-        lint={lint([
-          {
-            rule_id: "A2",
-            severity: "fail",
-            message: "profile",
-            fixer_id: "a2",
-            diff_preview: null,
-          },
-        ])}
-      />,
-    );
-    // The fail-severity finding's row is visible because the group is open.
+    renderLint([
+      {
+        rule_id: "A2",
+        severity: "fail",
+        message: "profile",
+        fixer_id: "a2",
+        diff_preview: null,
+      },
+    ]);
     expect(screen.getByTestId("finding-A2")).toBeInTheDocument();
   });
 
   it("opens the first non-empty group when no fails (e.g. warn)", () => {
-    render(
-      <LintView
-        lint={lint([
-          {
-            rule_id: "B3",
-            severity: "warn",
-            message: "bbl fields",
-            fixer_id: "b3",
-            diff_preview: null,
-          },
-        ])}
-      />,
-    );
+    renderLint([
+      {
+        rule_id: "B3",
+        severity: "warn",
+        message: "bbl fields",
+        fixer_id: "b3",
+        diff_preview: null,
+      },
+    ]);
     expect(screen.getByTestId("finding-B3")).toBeInTheDocument();
   });
 });
