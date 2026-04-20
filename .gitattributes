@@ -1,0 +1,18 @@
+# Normalize to LF across all platforms. Without this, Windows editors can
+# silently resave text files with CRLF, producing spurious whole-file diffs.
+* text=auto eol=lf
+
+# Explicit text-with-LF for source and data we edit by hand.
+*.py   text eol=lf
+*.md   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.cfg  text eol=lf
+*.ini  text eol=lf
+*.gcode text eol=lf
+
+# Binary — keep byte-identical; no EOL or encoding munging.
+*.3mf  binary
+*.pyc  binary
